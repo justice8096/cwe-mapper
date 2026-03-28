@@ -285,15 +285,33 @@ def generate_matrix(findings: list) -> str:
 
 def main():
     """Main entry point."""
+    # CWE-755: Proper error handling — errors to stderr with exit codes
     try:
-        findings = json.loads(sys.stdin.read())
-    except json.JSONDecodeError:
-        print('Error: Invalid JSON input')
-        return
+        raw_input = sys.stdin.read()
+        if not raw_input.strip():
+            print('Error: Empty input', file=sys.stderr)
+            sys.exit(1)
+        findings = json.loads(raw_input)
+    except json.JSONDecodeError as e:
+        print(f'Error: Invalid JSON input - {e}', file=sys.stderr)
+        sys.exit(1)
 
     if not isinstance(findings, list):
-        print('Error: Input must be a JSON array')
-        return
+        print('Error: Input must be a JSON array', file=sys.stderr)
+        sys.exit(1)
+
+    # CWE-20: Validate finding structure
+    for i, finding in enumerate(findings):
+        if not isinstance(finding, dict):
+            print(f'Error: Finding at index {i} must be a JSON object', file=sys.stderr)
+            sys.exit(1)
+        cwe_id = finding.get('cwe_id')
+        if cwe_id is not None:
+            try:
+                int(cwe_id)
+            except (TypeError, ValueError):
+                print(f'Error: Invalid cwe_id at index {i}', file=sys.stderr)
+                sys.exit(1)
 
     matrix = generate_matrix(findings)
     print(matrix)
