@@ -363,59 +363,41 @@ def map_cwe(cwe_id: int) -> dict:
 def main():
     """Main entry point."""
     try:
-        cwe_list = json.loads(sys.stdin.read())
-    except json.JSONDecodeError:
-        print(json.dumps({'error': 'Invalid JSON input'}, indent=2))
-        return
+        raw_input = sys.stdin.read()
+        cwe_list = json.loads(raw_input)
+    except json.JSONDecodeError as e:
+        # CWE-209: Generic error message without exposing internal structure
+        print(json.dumps({'error': 'Invalid JSON input'}, indent=2), file=sys.stderr)
+        sys.exit(1)
 
     if not isinstance(cwe_list, list):
-        print(json.dumps({'error': 'Input must be a JSON array'}, indent=2))
-        return
+        print(json.dumps({'error': 'Invalid request format'}, indent=2), file=sys.stderr)
+        sys.exit(1)
+
+    # CWE-20: Validate CWE IDs - must be positive integers within valid range
+    # CWE-681: Explicit type validation before conversion
+    validated_cwes = []
+    for cwe in cwe_list:
+        try:
+            cwe_id = int(cwe)
+        except (TypeError, ValueError):
+            print(json.dumps({'error': f'Invalid CWE ID type: expected integer'}, indent=2), file=sys.stderr)
+            sys.exit(1)
+        if cwe_id < 1 or cwe_id > 99999:
+            print(json.dumps({'error': f'CWE ID out of valid range (1-99999)'}, indent=2), file=sys.stderr)
+            sys.exit(1)
+        validated_cwes.append(cwe_id)
 
     results = {
-        'cwe_count': len(cwe_list),
-        'mappings': [map_cwe(int(cwe)) for cwe in cwe_list],
+        'cwe_count': len(validated_cwes),
+        'mappings': [map_cwe(cwe) for cwe in validated_cwes],
         'frameworks': {
-            'owasp_2021': sorted(set(
+            framework: sorted(set(
                 item
-                for mapping in [map_cwe(int(cwe)) for cwe in cwe_list]
-                for item in mapping['owasp_2021']
-            )),
-            'owasp_llm': sorted(set(
-                item
-                for mapping in [map_cwe(int(cwe)) for cwe in cwe_list]
-                for item in mapping['owasp_llm']
-            )),
-            'nist': sorted(set(
-                item
-                for mapping in [map_cwe(int(cwe)) for cwe in cwe_list]
-                for item in mapping['nist']
-            )),
-            'eu_ai_act': sorted(set(
-                item
-                for mapping in [map_cwe(int(cwe)) for cwe in cwe_list]
-                for item in mapping['eu_ai_act']
-            )),
-            'iso_27001': sorted(set(
-                item
-                for mapping in [map_cwe(int(cwe)) for cwe in cwe_list]
-                for item in mapping['iso_27001']
-            )),
-            'soc2': sorted(set(
-                item
-                for mapping in [map_cwe(int(cwe)) for cwe in cwe_list]
-                for item in mapping['soc2']
-            )),
-            'mitre_attack': sorted(set(
-                item
-                for mapping in [map_cwe(int(cwe)) for cwe in cwe_list]
-                for item in mapping['mitre_attack']
-            )),
-            'mitre_atlas': sorted(set(
-                item
-                for mapping in [map_cwe(int(cwe)) for cwe in cwe_list]
-                for item in mapping['mitre_atlas']
-            )),
+                for mapping in results['mappings']
+                for item in mapping.get(framework, [])
+            ))
+            for framework in ['owasp_2021', 'owasp_llm', 'nist', 'eu_ai_act', 'iso_27001', 'soc2', 'mitre_attack', 'mitre_atlas']
         },
     }
 
