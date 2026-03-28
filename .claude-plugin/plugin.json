@@ -1,0 +1,24 @@
+{
+  "name": "CWE Mapper",
+  "version": "1.0.0",
+  "description": "Security vulnerability classification and regulatory framework mapping for CWE IDs, OWASP, NIST, EU AI Act, and compliance frameworks",
+  "author": "Justice",
+  "license": "MIT",
+  "skills": [
+    {
+      "id": "cwe-mapper",
+      "path": "../skills/cwe-mapper"
+    }
+  ],
+  "tags": [
+    "security",
+    "vulnerability",
+    "CWE",
+    "compliance",
+    "OWASP",
+    "NIST",
+    "regulatory",
+    "threat-modeling",
+    "code-review"
+  ]
+}
