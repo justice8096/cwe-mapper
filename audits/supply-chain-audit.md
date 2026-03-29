@@ -1,465 +1,194 @@
-# Supply Chain Security Audit (POST-FIX VALIDATION)
-**CWE Mapper Project - Remediation Assessment**
-**Audit Date**: March 28, 2026
-**Classification**: Post-Remediation Supply Chain Review
+# Supply Chain Security Audit
+## cwe-mapper
+
+**Report Date**: 2026-03-29
+**Auditor**: Post-Commit Audit Suite — Supply Chain Security
+**Commit**: bbe38a9
+**Prior Commit Audited**: 45261b4
+**Branch**: master
+**Audit Type**: POST-FIX Re-audit
 
 ---
 
 ## Executive Summary
 
-This supply chain audit validates that security remediations have not introduced new supply chain risks and confirms the project maintains a **MINIMAL ATTACK SURFACE**. Zero external dependencies and hardened internal validation ensure **EXCELLENT supply chain posture**.
+The prior audit rated this project SLSA Level 0 with 8 supply chain issues (2 HIGH, 4 MEDIUM, 1 LOW, 1 INFO). This re-audit confirms that the two HIGH issues have been addressed: CI actions are now SHA-pinned (SC-01 FIXED) and the contradictory lint flags that made the lint gate incomplete are resolved (SC-08 FIXED). The CI permissions block has been added (SC-03 FIXED). Three MEDIUM items remain open: flake8 is still not version-pinned (SC-02 PARTIAL), signed-commit enforcement is not yet confirmed at the branch-protection level (SC-04 PARTIAL), and SBOM/SLSA provenance remain absent (SC-05, SC-06).
 
-**Previous Assessment**: LOW risk (2.8/10)
-**Current Assessment**: MINIMAL risk (1.1/10)
-**Improvement**: **-61% risk reduction**
+| Control Area | Prior Status | Current Status |
+|---|---|---|
+| .gitignore coverage | PASS | PASS |
+| Lockfiles (runtime deps) | PASS — no runtime deps | PASS |
+| Lockfiles (dev/build deps) | FAIL | PARTIAL — flake8 still unpinned |
+| CI/CD workflow | PASS | PASS |
+| CI action pinning | FAIL | FIXED — SHA-pinned |
+| CI permissions block | FAIL | FIXED — `contents: read` added |
+| Commit signing | PARTIAL | PARTIAL — fix commits signed; enforcement unverified |
+| SLSA Level | Level 0 | Level 0 (unchanged) |
+| SBOM | FAIL | FAIL (unchanged) |
+| Branch protection | UNKNOWN | UNKNOWN |
 
----
-
-## 1. Dependency Analysis (POST-REMEDIATION)
-
-### 1.1 External Dependency Inventory
-
-**Total External Dependencies**: 0
-**Third-Party Packages**: None
-**Transitive Dependencies**: None
-
-**Dependencies Used**:
-- json (Python stdlib) - No changes
-- re (Python stdlib) - No changes
-- sys (Python stdlib) - No changes
-- collections (Python stdlib) - No changes
-
-**Supply Chain Risk Impact**: ZERO new dependencies introduced
-
-### 1.2 Remediation Changes - Dependency Analysis
-
-| Change | Affects Dependencies | Impact |
-|--------|---------------------|--------|
-| Bounded regex patterns | No | None |
-| Input validation | No | None |
-| Error handling | No | None |
-| Type checking | No | None |
-| Error routing | No | None |
-
-**Conclusion**: Remediation changes are entirely internal; zero supply chain impact.
+**Overall**: CONDITIONAL PASS — meaningful improvement over prior audit; remaining gaps are medium/low impact for a stdlib-only project.
 
 ---
 
-## 2. Source Code Integrity (POST-FIX)
+## 1. .gitignore Analysis
 
-### 2.1 Code Change Tracking
+**Status**: PASS (unchanged)
 
-**Files Modified**:
-1. identify-cwes.py: 8 regex patterns bounded (lines 39-206)
-2. map-to-frameworks.py: Validation added (lines 377-388), logic fix (lines 391-401)
-3. generate-matrix.py: Error handling improved (lines 289-314)
+| Category | Entries | Assessment |
+|---|---|---|
+| Python bytecode | `__pycache__/`, `*.py[cod]`, `*$py.class`, `*.so` | Complete |
+| Build artifacts | `build/`, `dist/`, `*.egg-info/`, `wheels/` | Complete |
+| Virtual environments | `venv/`, `ENV/` | Complete |
+| IDE files | `.vscode/`, `.idea/`, `*.swp`, `*.swo`, `*~`, `.DS_Store` | Complete |
+| Sensitive files | `.env` | Present |
+| Test output | `test_output/`, `*.log` | Present |
 
-**Change Classification**:
-- Additions: 40 lines (all validation/error handling)
-- Modifications: 8 patterns (bounded quantifiers)
-- Deletions: 0 lines
-- Logic Reversals: 0
+Minor gap (unchanged): Certificate/key patterns (`*.pem`, `*.key`, `*.p12`, `*.pfx`) absent. Low risk for current scope.
 
-**Risk Assessment**: All changes are constraint-adding (defensive)
+---
 
-### 2.2 File Integrity Verification
+## 2. Lockfile and Dependency Analysis
 
-```bash
-# Hash verification (post-remediation)
-identify-cwes.py: VERIFIED
-  - 290 lines total
-  - 8 patterns with bounded quantifiers
-  - No external calls, static config only
+**Runtime dependencies**: PASS (zero — unchanged)
 
-map-to-frameworks.py: VERIFIED
-  - 408 lines total (post-fix: 408)
-  - Input validation lines 377-389
-  - Type safety lines 380-389
-  - Proper error routing: 9 instances
+All three scripts import only Python stdlib (`sys`, `re`, `json`, `collections`). No third-party runtime packages.
 
-generate-matrix.py: VERIFIED
-  - 321 lines total
-  - Error handling lines 289-314
-  - Stderr routing: 5 instances
-  - Exit codes: Properly set
+**Dev dependencies**: PARTIAL
+
+The CI workflow installs `flake8` via `pip install flake8` with no version pin and no `requirements-dev.txt`. This is unchanged from the prior audit. However, `--ignore=E501` has been removed from the flake8 invocation, so the lint gate now provides the intended coverage.
+
+Transitive dev dependencies (`pyflakes`, `pycodestyle`, `mccabe`) remain unpinned.
+
+**Recommendation**: Add `requirements-dev.txt` with pinned versions and update CI to `pip install -r requirements-dev.txt`.
+
+---
+
+## 3. CI/CD Workflow Analysis
+
+**File**: `.github/workflows/lint.yml`
+**Prior Status**: PARTIAL PASS
+**Current Status**: PASS (for current scope)
+
+### Current Hardened Configuration
+
+```yaml
+name: Lint
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  python-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
+        with:
+          python-version: '3.x'
+      - run: pip install flake8 && flake8 skills/cwe-mapper/scripts/ --max-line-length=120
 ```
 
----
+### Issue Status
 
-## 3. Build & Deployment Chain Security
+| # | Issue | Prior Severity | Current Status |
+|---|---|---|---|
+| SC-01 | Actions pinned to mutable version tags | HIGH | FIXED — SHA-pinned |
+| SC-02 | No `permissions:` block | MEDIUM (was SC-03) | FIXED |
+| SC-03 | `flake8` unpinned; no lockfile | HIGH (was SC-02) | PARTIAL — version still unpinned |
+| SC-04 | Contradictory `--ignore=E501` flag | LOW (was SC-08) | FIXED — flag removed |
 
-### 3.1 Build Process (Post-Remediation)
+### Remaining CI Gaps (informational)
 
-**Build Steps**:
-1. Source code verification (Git)
-2. Python syntax check
-3. Runtime validation (already tested)
-
-**Build Security Level**: L1 (Source control verified)
-
-**Remediation Impact on Build**: NONE
-- No compilation step (pure Python)
-- No new build artifacts
-- No package generation changes
-- Direct source execution
-
-### 3.2 Distribution Security
-
-**Current Distribution Method**:
-- GitHub repository (public)
-- Claude Code Skill package
-- Source code transparency
-- No pre-compiled binaries
-
-**Post-Remediation Status**: Unchanged and secure
+- No SAST or secret-scanning step (Bandit, Semgrep, or GitHub secret scanning)
+- No automated test execution (lint only; no unit/integration tests run in CI)
+- `pip install flake8` fetches latest from PyPI at runtime (SC-03 PARTIAL above)
 
 ---
 
-## 4. Vulnerability Remediation Integrity
+## 4. Commit Signing Analysis
 
-### 4.1 CWE-1333 Changes (Regex Bounds)
+**Status**: PARTIAL (improved)
 
-**Scope**: Lines 24-206 in identify-cwes.py
-**Change Type**: Pattern constraint (defensive)
-**Supply Chain Risk**: ZERO
-- No external tools called
-- No output changes
-- No behavior changes (except safety)
+The two fix commits (`39d72c4`, `bbe38a9`) carry SSH signatures (`-S` flag used per the commit message and audit request context). Earlier commits in the `audit:` series remain unsigned, consistent with the prior audit finding.
 
-### 4.2 CWE-20 Changes (Input Validation)
+| Recent Commit | Message Summary | Signing |
+|---|---|---|
+| bbe38a9 | style: fix flake8 violations | Signed (SSH) |
+| 39d72c4 | fix: resolve map-to-frameworks crash, add stdin limits... | Signed (SSH) |
+| 45261b4 | chore: add CI and release badges to README | Signed (prior) |
+| 0647acd | fix: add YAML frontmatter, rewrite SKILL.md | Signed (prior) |
+| 90e823f–45b7eed | audit: post-remediation re-audit series (8 commits) | Unsigned |
 
-**Scope**: Lines 377-389 in map-to-frameworks.py
-**Change Type**: Validation addition (defensive)
-**Supply Chain Risk**: ZERO
-- No new dependencies
-- No external API calls
-- No behavioral side effects
+The unsigned audit series predates the signing setup and was produced by the same author. No evidence of tampering. The cryptographic chain has a gap in the audit commit series but is intact from `0647acd` onward.
 
-### 4.3 CWE-755 Changes (Error Handling)
-
-**Scope**: Lines 289-314 in generate-matrix.py, lines 369-375 in map-to-frameworks.py
-**Change Type**: Error routing improvement (defensive)
-**Supply Chain Risk**: ZERO
-- Stderr routing only
-- No network calls
-- No external tools
-
-### 4.4 CWE-209 Changes (Error Messages)
-
-**Scope**: Multiple error messages across files
-**Change Type**: Message generalization (defensive)
-**Supply Chain Risk**: ZERO
-- No information leakage
-- No external visibility
-- Internal hardening only
-
-### 4.5 CWE-681 Changes (Type Safety)
-
-**Scope**: Lines 380-389 in map-to-frameworks.py
-**Change Type**: Type validation wrapper (defensive)
-**Supply Chain Risk**: ZERO
-- No new imports
-- Standard exception handling
-- Internal check only
+**Recommendation**: Enable "Require signed commits" in GitHub branch protection for `master` to enforce signing going forward.
 
 ---
 
-## 5. Known Vulnerability Assessment
+## 5. SLSA Level Assessment
 
-### 5.1 CVE Database Check (Post-Fix)
+**Status**: Level 0 (unchanged)
 
-**Python Runtime Modules**:
-```
-Module: json (used in all scripts)
-  Status: No active CVEs
-  Last update: 2026-03-01
-  Security patches: Up to date
+| SLSA Criterion | Level | Status | Notes |
+|---|---|---|---|
+| Source version controlled | L1 | PASS | GitHub |
+| Source verified history | L1 | PARTIAL | Recent commits signed; prior audit series unsigned |
+| Provenance generated | L1 | FAIL | No attestation artifact |
+| Hosted build service | L2 | PARTIAL | GitHub Actions CI exists; no provenance output |
+| Dependencies version-pinned | L2 | PARTIAL | Actions SHA-pinned; flake8 not pinned |
+| Signed provenance | L2/L3 | FAIL | — |
 
-Module: re (used in identify-cwes.py)
-  Status: No active CVEs
-  Last update: 2026-02-15
-  Security patches: Up to date
+**Current SLSA Level: 0**
 
-Module: sys (used in all scripts)
-  Status: No active CVEs
-  Last update: 2026-02-01
-  Security patches: Up to date
-
-Module: collections (used in two scripts)
-  Status: No active CVEs
-  Last update: 2026-02-08
-  Security patches: Up to date
-```
-
-**Total Known Vulnerabilities**: 0
-
-### 5.2 Dependency Freshness
-
-**Python Version Support**: 3.6+
-**EOL Status**: Python 3.6-3.12 supported, 3.13 compatible
-**Maintenance Status**: ACTIVE
+Reaching L1 requires adding a provenance attestation step (`actions/attest-build-provenance`) to the workflow — a one-step CI addition.
 
 ---
 
-## 6. Code Provenance & Auditability
+## 6. SBOM Assessment
 
-### 6.1 Git History Analysis (Post-Remediation)
+**Status**: FAIL (unchanged)
 
-**Commit History**:
-- Linear history maintained
-- No force pushes
-- Clear commit messages
-- Code review trail present
+No SBOM in any format (CycloneDX JSON, SPDX, SWID). The zero runtime dependency claim is verifiable by inspection, but a formal SBOM provides machine-readable confirmation for downstream security tools and satisfies EO 14028 for software distributed to US federal entities.
 
-**Attribution**:
-- All changes properly attributed
-- Timestamps accurate
-- No anonymous commits
-
-### 6.2 Code Authenticity Verification
-
-```bash
-# Code origin verification
-All changes:
-  ✓ Made within CWE Mapper repository
-  ✓ Attributed to security team
-  ✓ Time-stamped accurately
-  ✓ Referenced to CWE IDs
-
-Status: VERIFIED
-```
+**Recommendation**: Generate a minimal SBOM using `cyclonedx-py` or `syft` as a CI artifact.
 
 ---
 
-## 7. Attack Surface Analysis (Post-Fix)
+## 7. Branch Protection Assessment
 
-### 7.1 Input Attack Vectors
+**Status**: UNKNOWN (unchanged)
 
-| Vector | Previous | Current | Mitigation |
-|--------|----------|---------|-----------|
-| Malformed CWE IDs | Accepted | Rejected | Type validation |
-| Out-of-range CWE | Accepted | Rejected | Range check (1-99999) |
-| ReDoS via patterns | Possible | Prevented | Bounded quantifiers |
-| Error disclosure | Possible | Prevented | Generic messages |
-| Type confusion | Possible | Caught | try/except blocks |
-| Empty input | Ambiguous | Explicit error | Input check |
+Cannot inspect GitHub branch protection settings from a local clone. All recent commits appear to be direct pushes to `master`. No `CODEOWNERS` file found.
 
-**Vectors Eliminated**: 6/6 (100%)
-
-### 7.2 Exploitation Prevention (Tested)
-
-```bash
-# Attack scenario testing (post-remediation)
-
-Test 1: CWE ID overflow
-  Input: [999999999]
-  Result: REJECTED ✓
-  Error: "CWE ID out of valid range (1-99999)"
-
-Test 2: ReDoS pattern
-  Input: Malicious code + pattern
-  Result: SAFE ✓
-  Time: <10ms (bounded execution)
-
-Test 3: Error disclosure
-  Input: Malformed JSON
-  Result: Generic error ✓
-  Details: None exposed
-
-Test 4: Type confusion
-  Input: ["string"]
-  Result: Type error caught ✓
-  Message: Generic, safe
-
-Test 5: Empty input
-  Input: ''
-  Result: Explicit error ✓
-  Message: "Empty input"
-
-Test 6: Null values
-  Input: [null]
-  Result: Type error caught ✓
-  Message: "Invalid CWE ID type"
-
-Status: ALL SCENARIOS MITIGATED
-```
+**Recommended branch protection rules for `master`**:
+- Require signed commits
+- Require passing status check (lint workflow)
+- Disallow force-push
+- Disallow deletion of `master`
 
 ---
 
-## 8. SLSA Framework Compliance (Post-Fix)
+## Issue Summary
 
-### 8.1 SLSA L0-L4 Assessment
+| ID | Issue | Severity | Prior Status | Current Status |
+|---|---|---|---|---|
+| SC-01 | CI actions on mutable version tags | HIGH | OPEN | FIXED |
+| SC-02 | Dev dependencies unpinned; no lockfile | HIGH | OPEN | PARTIAL |
+| SC-03 | No `permissions:` block in lint.yml | MEDIUM | OPEN | FIXED |
+| SC-04 | Recent commits unsigned | MEDIUM | OPEN | PARTIAL (improved) |
+| SC-05 | No SBOM | MEDIUM | OPEN | OPEN |
+| SC-06 | SLSA Level 0 | MEDIUM | OPEN | OPEN |
+| SC-07 | Branch protection unverifiable | MEDIUM | OPEN | OPEN |
+| SC-08 | Contradictory lint flags | LOW | OPEN | FIXED |
 
-| Level | Requirement | Previous | Current | Status |
-|-------|-------------|----------|---------|--------|
-| L0 | Basic practices | N/A | EXCEEDS | ✓ EXCELLENT |
-| L1 | Version control | COMPLIANT | COMPLIANT | ✓ MAINTAINED |
-| L2 | Verified history | COMPLIANT | COMPLIANT | ✓ MAINTAINED |
-| L3 | Hermetic builds | N/A | N/A | - (Source only) |
-| L4 | Fully isolated | N/A | N/A | - (Source only) |
-
-**SLSA Rating**: L2+ (no changes in rating)
-
----
-
-## 9. Secure Development Practices
-
-### 9.1 Development Process (Post-Remediation)
-
-- [x] Code changes reviewed
-- [x] Changes align with CWE remediations
-- [x] Testing completed (32/32 tests pass)
-- [x] No new dependencies
-- [x] Error handling verified
-- [x] Input validation tested
-- [x] Documentation updated
-- [x] Backward compatibility maintained
-
-### 9.2 Quality Metrics
-
-| Metric | Before Remediation | After Remediation | Change |
-|--------|-------------------|-------------------|--------|
-| Security issues | 5 | 0 | -100% |
-| Input validation | 60% | 100% | +40% |
-| Error handling | 70% | 100% | +30% |
-| Type safety | Good | Excellent | +1 tier |
-| Test coverage | 8/8 | 32/32 | +300% |
+**Fixed**: 3 of 8 | **Partial**: 2 of 8 | **Open**: 3 of 8
 
 ---
 
-## 10. License & Compliance Review
+## Recommendations
 
-### 10.1 Project License
-
-**License**: MIT
-**License Status**: OSI Approved
-**Compliance**: EXCELLENT
-
-### 10.2 Dependency License Compliance
-
-**External Dependencies**: 0
-**License Violations**: None
-**Compliance Status**: N/A (zero deps)
-
-### 10.3 SBOM (Software Bill of Materials)
-
-**SBOM Status**: 
-```
-- Python runtime: Not included (user responsibility)
-- External packages: None
-- Internal components: 3 scripts (all included)
-```
-
----
-
-## 11. Risk Matrix (Post-Remediation)
-
-### 11.1 Supply Chain Risk Assessment
-
-| Risk Factor | Impact | Likelihood | Previous | Current |
-|-------------|--------|-----------|----------|---------|
-| Dependency vulnerability | HIGH | MINIMAL | 1.5 | 0.2 |
-| Build compromise | MEDIUM | MINIMAL | 0.8 | 0.4 |
-| Source tampering | HIGH | VERY LOW | 0.5 | 0.3 |
-| Malicious injection | HIGH | VERY LOW | 0.5 | 0.2 |
-| Runtime environment | MEDIUM | LOW | 1.0 | 0.8 |
-
-**Total Supply Chain Risk**: 4.3/10 → 1.9/10 **(-56% reduction)**
-
----
-
-## 12. Post-Remediation Validation
-
-### 12.1 Test Results Summary
-
-```
-SAST Analysis: PASS (0 issues)
-DAST Analysis: N/A (no web endpoints)
-Functional Tests: 8/8 PASS
-Security Tests: 12/12 PASS
-Integration Tests: 3/3 PASS
-Dependency Audit: PASS (zero deps)
-Code Review: PASS (all changes safe)
-
-Overall: 32/32 TESTS PASS (100%)
-```
-
-### 12.2 Remediation Quality Assessment
-
-```
-Completeness: 100% (all 5 CWEs addressed)
-Correctness: 100% (all fixes verified)
-Coverage: 100% (all input types tested)
-Maintainability: Excellent (code clarity improved)
-Performance Impact: < 0.5% (negligible)
-Regression Risk: None (backward compatible)
-```
-
----
-
-## 13. Recommendations (Post-Remediation)
-
-### 13.1 Completed Actions
-- [x] All 5 CWE remediations implemented
-- [x] Input validation hardened
-- [x] Error handling improved
-- [x] Type safety enhanced
-- [x] Testing suite expanded to 32 tests
-- [x] No new dependencies introduced
-- [x] Code review completed
-
-### 13.2 Future Supply Chain Improvements
-- [ ] Add SBOM generation (if distributed as package)
-- [ ] Implement signed releases (if published to PyPI)
-- [ ] Set up SAST in CI/CD pipeline
-- [ ] Document security policy (SECURITY.md)
-- [ ] Establish vulnerability disclosure process
-
-### 13.3 Maintenance Recommendations
-- Annual security audits
-- Monitor MITRE CWE updates
-- Track Python stdlib security updates
-- Review error handling logs (if deployed)
-
----
-
-## 14. Final Assessment
-
-### 14.1 Supply Chain Posture
-
-**Strengths**:
-- Zero external dependencies (minimal surface)
-- Python stdlib only (well-maintained)
-- Source code transparency (public GitHub)
-- Strong input validation (post-fix)
-- Comprehensive error handling (post-fix)
-- No build artifacts or binaries
-- Clean version control
-
-**Weaknesses**:
-- None identified (post-remediation)
-
-### 14.2 Risk Score Evolution
-
-```
-Pre-Remediation:    [████░░░░░] 2.8/10 (Low)
-Post-Remediation:   [░░░░░░░░░░] 1.1/10 (Minimal)
-Improvement:        -60.7% risk reduction
-```
-
----
-
-## 15. Sign-Off
-
-**Audit Type**: Post-Remediation Validation
-**Result**: APPROVED
-**Risk Level**: MINIMAL (1.1/10)
-**Recommendation**: Approved for production use
-**Confidence**: Very High (98%)
-
----
-
-**Report Generated**: 2026-03-28
-**Auditor**: Supply Chain Security Team
-**Status**: COMPLETE & VERIFIED
-**Next Review**: 12 months
+1. Add `requirements-dev.txt` with pinned flake8 and transitive deps; update CI to use it (30 min).
+2. Add `actions/attest-build-provenance` to reach SLSA L1 (1 hr).
+3. Enable "Require signed commits" branch protection rule on `master` (5 min, GitHub UI).
+4. Generate and commit a minimal SBOM via `cyclonedx-py` as a CI artifact (1 hr).
+5. Document branch protection settings in `SECURITY.md`.

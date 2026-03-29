@@ -1,634 +1,317 @@
-# CWE Mapping Vulnerability Audit (POST-FIX)
-**CWE Mapper Project - Remediation Validation**
-**Audit Date**: March 28, 2026
-**Classification**: Post-Fix Security Re-Audit
+# CWE Mapping Report
+## cwe-mapper
+
+**Report Date**: 2026-03-29
+**Auditor**: Post-Commit Audit Suite — CWE Mapper
+**Commit**: bbe38a9
+**Prior Commit Audited**: 45261b4
+**Branch**: master
+**Frameworks**: OWASP Top 10 2021, OWASP LLM Top 10 2025, NIST SP 800-53, EU AI Act, ISO 27001:2022, SOC 2, MITRE ATT&CK v15, MITRE ATLAS v4
+**Audit Type**: POST-FIX Re-audit
 
 ---
 
-## Executive Summary
+## Overview
 
-This post-fix CWE mapping audit validates remediation of five critical CWE identifications. All **five vulnerabilities have been RESOLVED and verified**. The project now demonstrates comprehensive mitigation of security weaknesses identified during the pre-audit phase.
-
-**Previous CWEs Found**: 5
-**Current CWEs Found**: 0
-**Remediation Rate**: 100%
-**Regression Risk**: NONE
+This re-audit maps all CWEs from the prior scan and tracks remediation status. Of the 11 CWEs identified in the initial audit, 8 have been fully closed. The remaining 3 are informational or accepted residual risks. No new CWEs were introduced by the fix commits.
 
 ---
 
-## CWE Remediation Status Summary
+## CWE Status Table
 
-| CWE ID | CWE Title | Severity | Status | Resolution |
-|--------|-----------|----------|--------|-----------|
-| CWE-1333 | Inefficient Regular Expression Complexity | MEDIUM | RESOLVED | Bounded quantifiers |
-| CWE-20 | Improper Input Validation | MEDIUM | RESOLVED | Range validation |
-| CWE-755 | Improper Handling of Exceptional Conditions | LOW | RESOLVED | stderr routing |
-| CWE-209 | Information Exposure Through Error Message | LOW | RESOLVED | Generic messages |
-| CWE-681 | Incorrect Conversion | LOW | RESOLVED | Type validation |
+| CWE | Name | Prior Severity | Current Status |
+|-----|------|---------------|----------------|
+| CWE-400 | Uncontrolled Resource Consumption | HIGH | CLOSED — 10 MB stdin limit applied to all 3 scripts |
+| CWE-617 | Reachable Assertion (runtime crash) | HIGH | CLOSED — mappings list built before results dict |
+| CWE-1333 | Inefficient Regular Expression Complexity (ReDoS) | MEDIUM | CLOSED — CSRF regex uses `{0,500}` bounded quantifier |
+| CWE-390 | Detection of Error Condition Without Action | MEDIUM | CLOSED — Warning printed to stderr on regex compile error |
+| CWE-276 | Incorrect Default Permissions | LOW | CLOSED — `permissions: contents: read` in lint.yml |
+| CWE-1104 | Use of Unmaintained Third-Party Components | LOW | CLOSED — CI actions SHA-pinned |
+| CWE-116 | Improper Encoding / Output Neutralization | MEDIUM | RESIDUAL — name from hardcoded dict, not user-controlled |
+| CWE-693 | Protection Mechanism Failure (no SBOM) | INFO | OPEN — zero runtime deps; low risk |
+| CWE-710 | Coding Standards Violation (version mismatch) | INFO | CLOSED — evals.json aligned to ATT&CK v15 / ATLAS v4 |
+| CWE-710 | Coding Standards Violation (contradictory lint flags) | INFO | CLOSED — `--ignore=E501` removed; zero violations |
+| CWE-345 | Insufficient Verification of Data Authenticity | MEDIUM | PARTIAL — fix commits signed; historical audit series unsigned |
+| CWE-1188 | Insecure Default Initialization of Resource (CI perms) | MEDIUM | CLOSED — `permissions: contents: read` applied |
 
----
-
-## 1. CWE-1333: Inefficient Regular Expression Complexity
-
-### 1.1 Vulnerability Details
-
-**CWE Name**: Improper Neutralization of Input During Web Page Generation (ReDoS)
-**Severity**: MEDIUM (5.2/10 CVSS)
-**Confidence**: MEDIUM
-**Type**: Regular Expression Denial of Service
-
-### 1.2 Previous Finding
-
-**Affected File**: identify-cwes.py, lines 23-45
-**Issue**: Multiple regex patterns used unbounded wildcard matching (`.*`)
-```python
-# VULNERABLE PATTERN
-r'f["\'].*\$\{.*user.*\}'
-```
-
-**Risk**: Catastrophic backtracking on malformed input could cause DoS
-
-### 1.3 Remediation Applied
-
-**Fix Location**: Lines 39-206 in identify-cwes.py
-**Pattern Type**: Bounded quantifier substitution
-```python
-# REMEDIATED PATTERN
-r'f["\'][^"\']{0,200}\$\{[^}]{0,100}user[^}]{0,100}\}'
-```
-
-**Changes Made**:
-- Line 39 (CWE-79): `.*` → `[^"\']{0,200}`
-- Lines 48-53 (CWE-89): Multiple patterns bounded
-- Lines 72-76 (CWE-78): OS injection patterns bounded
-- Lines 203-206 (CWE-94): Code injection patterns bounded
-
-### 1.4 Technical Validation
-
-**Bounded Pattern Analysis**:
-```
-Pattern: r'f["\'][^"\']{0,200}\$\{[^}]{0,100}user[^}]{0,100}\}'
-
-Components:
-  f               - Literal 'f' character
-  ["\']           - Single or double quote
-  [^"\']{0,200}   - Max 200 non-quote characters (bounded)
-  \$\{            - Literal '${' escape
-  [^}]{0,100}     - Max 100 non-brace characters (bounded)
-  user            - Literal 'user' text
-  [^}]{0,100}     - Max 100 non-brace characters (bounded)
-  \}              - Literal closing brace
-
-Complexity Analysis:
-  Previous:   O(2^n) backtracking (catastrophic)
-  Current:    O(n) linear scan (safe)
-  Bound:      Max 400 character analysis (finite)
-```
-
-**Performance Impact**: <0.1% overhead
-
-### 1.5 Verification Tests
-
-```bash
-# Test 1: Pattern compilation (no ReDoS)
-python3 -c "
-import re
-pattern = r'f[\"\\'][^\"\\\']{0,200}\\\${[^}]{0,100}user[^}]{0,100}}'
-re.compile(pattern)
-print('PASS: Pattern compiles safely')
-"
-
-# Test 2: Normal input matching
-code = 'f\"template ${user.name}\"'
-if re.search(pattern, code):
-    print('PASS: Normal input matches')
-
-# Test 3: Malicious input timeout (none observed)
-import signal
-def timeout_handler(signum, frame):
-    raise TimeoutError("Regex timeout")
-signal.signal(signal.SIGALRM, timeout_handler)
-signal.alarm(1)  # 1-second timeout
-try:
-    re.search(pattern, "malicious" * 1000)
-    print('PASS: No ReDoS observed')
-except TimeoutError:
-    print('FAIL: ReDoS detected')
-finally:
-    signal.alarm(0)
-```
-
-**Test Results**: ALL PASS ✓
-
-### 1.6 CWE-1333 Remediation Status
-
-**Status**: **FULLY RESOLVED** ✓
-**Validation**: Verified safe execution
-**Regression Risk**: None
-**Performance Impact**: Negligible (<0.1%)
+**Closed**: 8 | **Residual/Accepted**: 1 | **Open**: 1 | **Partial**: 1
 
 ---
 
-## 2. CWE-20: Improper Input Validation
+## Per-CWE Framework Mapping
 
-### 2.1 Vulnerability Details
+### CWE-400 — Uncontrolled Resource Consumption
+**Status**: CLOSED
 
-**CWE Name**: Improper Input Validation
-**Severity**: MEDIUM (4.8/10 CVSS)
-**Confidence**: MEDIUM
-**Type**: Missing bounds checking
-
-### 2.2 Previous Finding
-
-**Affected File**: map-to-frameworks.py, lines 366-373
-**Issue**: CWE IDs accepted without range validation
-```python
-# VULNERABLE CODE
-cwe_list = json.loads(sys.stdin.read())
-# No bounds check on CWE ID values
-```
-
-**Risk**: Could accept invalid CWE IDs (negative, >10000)
-
-### 2.3 Remediation Applied
-
-**Fix Location**: Lines 377-389 in map-to-frameworks.py
-```python
-# REMEDIATED CODE
-for cwe in cwe_list:
-    try:
-        cwe_id = int(cwe)
-    except (TypeError, ValueError):
-        print(json.dumps({'error': f'Invalid CWE ID type: expected integer'},
-                         indent=2), file=sys.stderr)
-        sys.exit(1)
-    if cwe_id < 1 or cwe_id > 99999:
-        print(json.dumps({'error': f'CWE ID out of valid range (1-99999)'},
-                         indent=2), file=sys.stderr)
-        sys.exit(1)
-    validated_cwes.append(cwe_id)
-```
-
-**Validation Strategy**:
-1. Type checking: `int(cwe)` with try/except
-2. Range validation: `1 <= cwe_id <= 99999`
-3. Error handling: Generic messages to stderr
-
-### 2.4 Range Justification
-
-**CWE ID Range**: 1-99999
-- **Lower bound (1)**: CWE-1 is first official CWE
-- **Upper bound (99999)**: Accommodation for future expansion
-- **Real-world CWEs**: 1-1399 currently registered (IEEE/MITRE)
-- **Safety margin**: 5x expansion buffer
-
-**Boundary Testing**:
-```
-Input: 0      → REJECTED (< 1)
-Input: 1      → ACCEPTED (lower bound)
-Input: 89     → ACCEPTED (normal CWE)
-Input: 99999  → ACCEPTED (upper bound)
-Input: 100000 → REJECTED (> 99999)
-Input: -1     → REJECTED (< 1)
-Input: "abc"  → REJECTED (not integer)
-```
-
-### 2.5 Verification Tests
-
-```bash
-# Test 1: Valid CWE IDs accepted
-echo '[89, 502, 798]' | python3 map-to-frameworks.py > /dev/null 2>&1
-echo "Result: $?"  # Should be 0
-
-# Test 2: Out-of-range CWE rejected
-echo '[100000]' | python3 map-to-frameworks.py 2>&1 | grep "out of valid range"
-echo "Result: Rejection confirmed"
-
-# Test 3: Negative CWE rejected
-echo '[-1]' | python3 map-to-frameworks.py 2>&1 | grep "out of valid range"
-echo "Result: Rejection confirmed"
-
-# Test 4: Type validation
-echo '["string"]' | python3 map-to-frameworks.py 2>&1 | grep "Invalid CWE ID type"
-echo "Result: Type error caught"
-
-# Test 5: Boundary values
-echo '[1, 99999]' | python3 map-to-frameworks.py > /dev/null 2>&1
-echo "Result: Boundaries accepted"
-```
-
-**Test Results**: 5/5 PASS ✓
-
-### 2.6 CWE-20 Remediation Status
-
-**Status**: **FULLY RESOLVED** ✓
-**Validation**: Comprehensive bounds checking verified
-**Regression Risk**: None
-**Impact**: Proper error handling with informative messages
+| Framework | Mapping |
+|-----------|---------|
+| OWASP Top 10 2021 | A05 — Security Misconfiguration |
+| OWASP LLM Top 10 2025 | LLM04 — Model Denial of Service |
+| NIST SP 800-53 | SC-5 (Denial of Service Protection), SI-10, SI-12 |
+| EU AI Act | Article 15 — Accuracy, Robustness and Cybersecurity |
+| ISO 27001:2022 | A8.6 (Capacity Management) |
+| SOC 2 | CC6.1, CC7.2 |
+| MITRE ATT&CK v15 | T1499 (Endpoint Denial of Service) |
+| MITRE ATLAS v4 | AML.T0029 (Denial of ML Service) |
 
 ---
 
-## 3. CWE-755: Improper Handling of Exceptional Conditions
+### CWE-617 — Reachable Assertion / UnboundLocalError Runtime Crash
+**Status**: CLOSED
 
-### 3.1 Vulnerability Details
-
-**CWE Name**: Improper Handling of Exceptional Conditions
-**Severity**: LOW (2.1/10 CVSS)
-**Confidence**: LOW
-**Type**: Missing error handling
-
-### 3.2 Previous Finding
-
-**Affected Files**: 
-- generate-matrix.py, lines 286-297
-- map-to-frameworks.py, lines 366-373
-
-**Issue**: Errors printed to stdout instead of stderr
-```python
-# VULNERABLE CODE
-except json.JSONDecodeError:
-    print('Error: Invalid JSON input')  # To stdout
-    return  # No exit code
-```
-
-**Risk**: Mixing error messages with normal output; no exit status
-
-### 3.3 Remediation Applied
-
-**Fix in generate-matrix.py (lines 289-314)**:
-```python
-try:
-    raw_input = sys.stdin.read()
-    if not raw_input.strip():
-        print('Error: Empty input', file=sys.stderr)
-        sys.exit(1)
-    findings = json.loads(raw_input)
-except json.JSONDecodeError as e:
-    print(f'Error: Invalid JSON input - {e}', file=sys.stderr)
-    sys.exit(1)
-```
-
-**Fix in map-to-frameworks.py (lines 369-375)**:
-```python
-except json.JSONDecodeError as e:
-    print(json.dumps({'error': 'Invalid JSON input'}, indent=2), file=sys.stderr)
-    sys.exit(1)
-```
-
-**Improvements**:
-- Errors routed to stderr (not stdout)
-- Exit codes set properly (1 = failure)
-- Empty input explicitly handled
-- Exception context captured
-
-### 3.4 Verification Tests
-
-```bash
-# Test 1: Errors go to stderr
-echo '{invalid}' | python3 generate-matrix.py 2>/dev/null | wc -l
-# Result: 0 (no stdout output)
-
-echo '{invalid}' | python3 generate-matrix.py 2>&1 | grep "Invalid JSON"
-# Result: Error message confirmed on stderr
-
-# Test 2: Empty input detection
-echo '' | python3 generate-matrix.py 2>&1 | grep "Empty input"
-# Result: Explicit error message
-
-# Test 3: Exit codes
-echo '' | python3 generate-matrix.py 2>/dev/null ; echo $?
-# Result: 1 (failure exit code)
-
-echo '[{"cwe_id": 89}]' | python3 generate-matrix.py > /dev/null 2>&1 ; echo $?
-# Result: 0 (success exit code)
-
-# Test 4: JSON parsing error with context
-echo '{"missing": quote}' | python3 generate-matrix.py 2>&1
-# Result: Error with JSON parsing details
-```
-
-**Test Results**: 4/4 PASS ✓
-
-### 3.5 CWE-755 Remediation Status
-
-**Status**: **FULLY RESOLVED** ✓
-**Validation**: Proper stderr routing and exit codes verified
-**Regression Risk**: None
-**Impact**: Better error handling for script integration
+| Framework | Mapping |
+|-----------|---------|
+| OWASP Top 10 2021 | A05 — Security Misconfiguration |
+| OWASP LLM Top 10 2025 | LLM09 — Overreliance |
+| NIST SP 800-53 | SI-10 (Input Validation), SA-11 (Developer Security Testing) |
+| EU AI Act | Article 15 — Accuracy, Robustness and Cybersecurity |
+| ISO 27001:2022 | A8.1 (Software Quality) |
+| SOC 2 | CC7.1, CC3.2 |
+| MITRE ATT&CK v15 | T1499.004 (Application or System Exploitation) |
+| MITRE ATLAS v4 | AML.T0043 (Denial of ML Service via Crash) |
 
 ---
 
-## 4. CWE-209: Information Exposure Through Error Message
+### CWE-1333 — Inefficient Regular Expression Complexity (ReDoS)
+**Status**: CLOSED
 
-### 4.1 Vulnerability Details
-
-**CWE Name**: Information Exposure Through an Error Message
-**Severity**: LOW (2.0/10 CVSS)
-**Confidence**: LOW
-**Type**: Information disclosure
-
-### 4.2 Previous Finding
-
-**Affected Files**: map-to-frameworks.py, generate-matrix.py
-**Issue**: Error messages could expose internal details
-```python
-# POTENTIALLY VULNERABLE
-except json.JSONDecodeError as e:
-    print(f'Error: {e}')  # Could expose Python internals
-```
-
-**Risk**: Exposing exception details, module names, or structure
-
-### 4.3 Remediation Applied
-
-**All error messages now generic**:
-
-In map-to-frameworks.py:
-```python
-# Generic error message (no details)
-print(json.dumps({'error': 'Invalid JSON input'}, indent=2), file=sys.stderr)
-
-# Generic type error
-print(json.dumps({'error': f'Invalid CWE ID type: expected integer'},
-                 indent=2), file=sys.stderr)
-
-# Generic range error
-print(json.dumps({'error': f'CWE ID out of valid range (1-99999)'},
-                 indent=2), file=sys.stderr)
-```
-
-In generate-matrix.py:
-```python
-# Generic empty input error
-print('Error: Empty input', file=sys.stderr)
-
-# Generic JSON error (context not exposed)
-except json.JSONDecodeError as e:
-    print(f'Error: Invalid JSON input - {e}', file=sys.stderr)
-```
-
-### 4.4 Information Not Exposed
-
-**Hidden from Error Messages**:
-- Stack traces (none included)
-- Function names (generic "Invalid" used)
-- Module paths (no Python paths shown)
-- Variable values (no values exposed)
-- Line numbers (not included)
-- Exception types (not specified)
-
-### 4.5 Verification Tests
-
-```bash
-# Test 1: No traceback exposure
-echo '{broken json}' | python3 map-to-frameworks.py 2>&1 | grep -i "traceback"
-# Result: (empty - no traceback)
-
-# Test 2: Generic error message
-echo '{"invalid": json}' | python3 generate-matrix.py 2>&1 | grep -o '"error"'
-# Result: "error" (structure safe, no details)
-
-# Test 3: No Python path exposure
-echo 'null' | python3 map-to-frameworks.py 2>&1 | grep -i "site-packages"
-# Result: (empty - no module paths)
-
-# Test 4: Type mismatch message
-echo '[null]' | python3 map-to-frameworks.py 2>&1
-# Result: Generic type error message
-
-# Test 5: No variable exposure
-echo '[999999999]' | python3 map-to-frameworks.py 2>&1 | grep -o "999999999"
-# Result: (empty - value not exposed in error)
-```
-
-**Test Results**: 5/5 PASS ✓
-
-### 4.6 CWE-209 Remediation Status
-
-**Status**: **FULLY RESOLVED** ✓
-**Validation**: No information disclosure confirmed
-**Regression Risk**: None
-**Impact**: Improved security posture for error handling
+| Framework | Mapping |
+|-----------|---------|
+| OWASP Top 10 2021 | A05 — Security Misconfiguration |
+| OWASP LLM Top 10 2025 | LLM04 — Model Denial of Service |
+| NIST SP 800-53 | SC-5, SI-10 |
+| EU AI Act | Article 15 — Accuracy, Robustness and Cybersecurity |
+| ISO 27001:2022 | A8.1 |
+| SOC 2 | CC6.1 |
+| MITRE ATT&CK v15 | T1499 |
+| MITRE ATLAS v4 | AML.T0029 |
 
 ---
 
-## 5. CWE-681: Incorrect Conversion
+### CWE-390 — Detection of Error Condition Without Action
+**Status**: CLOSED
 
-### 5.1 Vulnerability Details
-
-**CWE Name**: Incorrect Conversion between Numeric Types
-**Severity**: LOW (1.8/10 CVSS)
-**Confidence**: LOW
-**Type**: Unsafe type conversion
-
-### 5.2 Previous Finding
-
-**Affected File**: map-to-frameworks.py, lines 366-373
-**Issue**: Direct `int()` conversion without error handling
-```python
-# VULNERABLE CODE
-for cwe in cwe_list:
-    cwe_id = int(cwe)  # Could raise TypeError/ValueError
-```
-
-**Risk**: Uncaught exceptions could crash the tool or cause unexpected behavior
-
-### 5.3 Remediation Applied
-
-**Fix Location**: Lines 380-389 in map-to-frameworks.py
-```python
-# REMEDIATED CODE
-for cwe in cwe_list:
-    try:
-        cwe_id = int(cwe)  # Explicit type conversion
-    except (TypeError, ValueError):  # Catch conversion errors
-        print(json.dumps({'error': f'Invalid CWE ID type: expected integer'},
-                         indent=2), file=sys.stderr)
-        sys.exit(1)
-```
-
-**Error Scenarios Handled**:
-```
-Scenario 1: int("abc")
-  Exception: ValueError
-  Status: Caught ✓
-
-Scenario 2: int(None)
-  Exception: TypeError
-  Status: Caught ✓
-
-Scenario 3: int("3.14")
-  Exception: ValueError (float string not valid for int)
-  Status: Caught ✓
-
-Scenario 4: int([1, 2])
-  Exception: TypeError
-  Status: Caught ✓
-
-Scenario 5: int("89")
-  Exception: None
-  Status: Success ✓
-```
-
-### 5.4 Verification Tests
-
-```bash
-# Test 1: Valid integer
-echo '[89]' | python3 map-to-frameworks.py > /dev/null 2>&1 && echo "PASS"
-
-# Test 2: String input
-echo '["string"]' | python3 map-to-frameworks.py 2>&1 | grep "Invalid CWE ID type" && echo "PASS"
-
-# Test 3: Float as string
-echo '[3.14]' | python3 map-to-frameworks.py 2>&1 | grep "Invalid CWE ID type" && echo "PASS"
-
-# Test 4: Null input
-echo '[null]' | python3 map-to-frameworks.py 2>&1 | grep "Invalid CWE ID type" && echo "PASS"
-
-# Test 5: Mixed valid and invalid
-echo '[89, "invalid"]' | python3 map-to-frameworks.py 2>&1 | grep "Invalid CWE ID type" && echo "PASS"
-
-# Test 6: Empty array
-echo '[]' | python3 map-to-frameworks.py > /dev/null 2>&1 && echo "PASS (empty accepted)"
-```
-
-**Test Results**: 6/6 PASS ✓
-
-### 5.5 CWE-681 Remediation Status
-
-**Status**: **FULLY RESOLVED** ✓
-**Validation**: Type safety verified with comprehensive test coverage
-**Regression Risk**: None
-**Impact**: Robust input handling for all type combinations
+| Framework | Mapping |
+|-----------|---------|
+| OWASP Top 10 2021 | A09 — Security Logging and Monitoring Failures |
+| OWASP LLM Top 10 2025 | LLM09 — Overreliance |
+| NIST SP 800-53 | AU-12 (Audit Generation), SI-4 (Monitoring), SI-11 (Error Handling) |
+| EU AI Act | Article 13 — Transparency and Provision of Information |
+| ISO 27001:2022 | A8.15 (Logging), A8.16 (Monitoring Activities) |
+| SOC 2 | CC7.2, CC4.1 |
+| MITRE ATT&CK v15 | T1562.006 (Indicator Blocking) |
+| MITRE ATLAS v4 | AML.T0015 (Evade ML Model) |
 
 ---
 
-## 6. Cross-CWE Analysis
+### CWE-276 — Incorrect Default Permissions
+**Status**: CLOSED
 
-### 6.1 Remediation Completeness
-
-| CWE | Component | Previous Risk | Current Risk | Mitigation |
-|-----|-----------|---------------|--------------|-----------|
-| CWE-1333 | Pattern matching | DoS possible | Prevented | Bounded regex |
-| CWE-20 | Input validation | Unbounded | Validated | Range check |
-| CWE-755 | Error handling | Poor routing | Proper stderr | Sys.stderr + exit |
-| CWE-209 | Error disclosure | Possible | Prevented | Generic messages |
-| CWE-681 | Type conversion | Uncaught | Caught | Try/except |
-
-**Completeness**: 5/5 CWEs remediated (100%)
-
-### 6.2 Related CWE Prevention
-
-**CWE-1025** (Comparison Using Wrong Factors):
-- Related to CWE-20 remediation
-- Bounds check prevents invalid comparisons
-- Status: Prevented ✓
-
-**CWE-1104** (Unmaintained Third Party):
-- Project uses only stdlib
-- No external dependencies
-- Status: Not applicable ✓
+| Framework | Mapping |
+|-----------|---------|
+| OWASP Top 10 2021 | A05 — Security Misconfiguration |
+| OWASP LLM Top 10 2025 | LLM03 — Supply Chain Vulnerabilities |
+| NIST SP 800-53 | CM-6 (Configuration Settings), AC-6 (Least Privilege) |
+| EU AI Act | Article 15 |
+| ISO 27001:2022 | A8.2 (Privileged Access Rights) |
+| SOC 2 | CC6.3, CC6.6 |
+| MITRE ATT&CK v15 | T1078 (Valid Accounts) |
+| MITRE ATLAS v4 | AML.T0010 (ML Supply Chain Compromise) |
 
 ---
 
-## 7. Functional Regression Testing
+### CWE-1104 — Use of Unmaintained Third-Party Components (mutable CI tags)
+**Status**: CLOSED
 
-### 7.1 Core Functionality Verification
-
-```bash
-# Test Suite: Functionality Post-Remediation
-
-Test 1: identify-cwes.py (empty input)
-  echo '' | python3 identify-cwes.py
-  Result: [] (empty array) ✓
-
-Test 2: identify-cwes.py (valid code)
-  echo 'eval(user_input)' | python3 identify-cwes.py
-  Result: CWE-94 detected ✓
-
-Test 3: map-to-frameworks.py (valid CWEs)
-  echo '[89, 502, 798]' | python3 map-to-frameworks.py
-  Result: JSON mapping output ✓
-
-Test 4: generate-matrix.py (findings)
-  echo '[{"cwe_id": 89, "severity": "CRITICAL"}]' | python3 generate-matrix.py
-  Result: Markdown matrix output ✓
-```
-
-**Regression Results**: 4/4 PASS (No functionality lost)
+| Framework | Mapping |
+|-----------|---------|
+| OWASP Top 10 2021 | A06 — Vulnerable and Outdated Components |
+| OWASP LLM Top 10 2025 | LLM03 — Supply Chain Vulnerabilities |
+| NIST SP 800-53 | SI-2 (Flaw Remediation), SA-12 (Supply Chain Protection) |
+| EU AI Act | Article 15 |
+| ISO 27001:2022 | A8.6 |
+| SOC 2 | CC3.2, CC9.2 |
+| MITRE ATT&CK v15 | T1195.001 (Supply Chain Compromise) |
+| MITRE ATLAS v4 | AML.T0010 |
 
 ---
 
-## 8. Final CWE Remediation Assessment
+### CWE-116 — Improper Encoding or Escaping of Output
+**Status**: RESIDUAL — accepted
 
-### 8.1 Summary Table
-
-| CWE | Pre-Fix Status | Post-Fix Status | Tests | Result |
-|-----|---|---|---|---|
-| CWE-1333 | MEDIUM (5.2/10) | RESOLVED | 3/3 | ✓ PASS |
-| CWE-20 | MEDIUM (4.8/10) | RESOLVED | 5/5 | ✓ PASS |
-| CWE-755 | LOW (2.1/10) | RESOLVED | 4/4 | ✓ PASS |
-| CWE-209 | LOW (2.0/10) | RESOLVED | 5/5 | ✓ PASS |
-| CWE-681 | LOW (1.8/10) | RESOLVED | 6/6 | ✓ PASS |
-
-### 8.2 Testing Summary
-
-```
-Total Tests Executed: 23
-Total Tests Passed: 23
-Pass Rate: 100%
-Failure Rate: 0%
-Coverage: Complete (all CWEs + regression)
-```
+| Framework | Mapping |
+|-----------|---------|
+| OWASP Top 10 2021 | A03 — Injection |
+| OWASP LLM Top 10 2025 | LLM02 — Insecure Output Handling |
+| NIST SP 800-53 | SI-10, SI-15 (Information Output Filtering) |
+| EU AI Act | Article 15 |
+| ISO 27001:2022 | A8.1 |
+| SOC 2 | CC6.1, CC6.7 |
+| MITRE ATT&CK v15 | T1059 |
+| MITRE ATLAS v4 | AML.T0018 (Backdoor ML Model) |
 
 ---
 
-## 9. Risk Score Evolution
+### CWE-693 — Protection Mechanism Failure (no SBOM)
+**Status**: OPEN / INFO
 
-```
-PRE-REMEDIATION
-CWE-1333: ████░░░░░░ 5.2/10
-CWE-20:   ████░░░░░░░ 4.8/10
-CWE-755:  ██░░░░░░░░░░ 2.1/10
-CWE-209:  ██░░░░░░░░░░░ 2.0/10
-CWE-681:  ██░░░░░░░░░░░░ 1.8/10
-TOTAL:    ████░░░░░░ 3.2/10 (Medium)
-
-POST-REMEDIATION
-CWE-1333: ░░░░░░░░░░░░░░░░░░░░ 0.0/10 ✓
-CWE-20:   ░░░░░░░░░░░░░░░░░░░░ 0.0/10 ✓
-CWE-755:  ░░░░░░░░░░░░░░░░░░░░ 0.0/10 ✓
-CWE-209:  ░░░░░░░░░░░░░░░░░░░░ 0.0/10 ✓
-CWE-681:  ░░░░░░░░░░░░░░░░░░░░ 0.0/10 ✓
-TOTAL:    ░░░░░░░░░░░░░░░░░░░░ 0.0/10 ✓
-```
-
-**Improvement**: -3.2 points (100% remediation)
+| Framework | Mapping |
+|-----------|---------|
+| OWASP Top 10 2021 | A06 — Vulnerable and Outdated Components |
+| OWASP LLM Top 10 2025 | LLM03 — Supply Chain Vulnerabilities |
+| NIST SP 800-53 | SA-12 (Supply Chain Protection), CM-8 (Component Inventory) |
+| EU AI Act | Article 13 — Transparency |
+| ISO 27001:2022 | A8.6 |
+| SOC 2 | CC3.2 |
+| MITRE ATT&CK v15 | T1195 |
+| MITRE ATLAS v4 | AML.T0010 |
 
 ---
 
-## 10. Recommendations
+### CWE-710 — Coding Standards Violations (both instances)
+**Status**: CLOSED (both instances)
 
-### 10.1 Completed
-- [x] All 5 CWEs fully remediated
-- [x] Comprehensive test coverage (23 tests)
-- [x] No regressions detected
-- [x] Documentation updated
-- [x] Verification completed
-
-### 10.2 Future Monitoring
-- Annual CWE list review
-- Monitor for new variants of remediated CWEs
-- Track MITRE updates for CWE definitions
+| Framework | Mapping |
+|-----------|---------|
+| OWASP Top 10 2021 | A05 — Security Misconfiguration / A09 — Logging Failures |
+| OWASP LLM Top 10 2025 | LLM09 — Overreliance |
+| NIST SP 800-53 | SA-8 (Security Engineering), CM-6, CM-2 |
+| EU AI Act | Article 9 (Risk Management), Article 13 (Transparency) |
+| ISO 27001:2022 | A8.25 (Secure Development Life Cycle), A8.8 |
+| SOC 2 | CC3.1, CC7.1 |
+| MITRE ATT&CK v15 | — |
+| MITRE ATLAS v4 | — |
 
 ---
 
-## Sign-Off
+### CWE-345 — Insufficient Verification of Data Authenticity (unsigned commits)
+**Status**: PARTIAL — fix commits signed; historical unsigned audit series remains
 
-**Audit Result**: PASSED ✓
-**CWEs Resolved**: 5/5 (100%)
-**Risk Level**: MINIMAL (0.0/10)
-**Recommendation**: Approved for production
+| Framework | Mapping |
+|-----------|---------|
+| OWASP Top 10 2021 | A08 — Software and Data Integrity Failures |
+| OWASP LLM Top 10 2025 | LLM03 — Supply Chain Vulnerabilities |
+| NIST SP 800-53 | SI-7 (Software Integrity), SA-12 |
+| EU AI Act | Article 15 |
+| ISO 27001:2022 | A8.32 (Change Management), A8.20 |
+| SOC 2 | CC7.1, CC8.1 |
+| MITRE ATT&CK v15 | T1195.003 |
+| MITRE ATLAS v4 | AML.T0010 |
 
-**Report Generated**: 2026-03-28
-**Confidence Level**: VERY HIGH (99%)
+---
+
+### CWE-1188 — Insecure Default Initialization of Resource (CI permissions)
+**Status**: CLOSED
+
+| Framework | Mapping |
+|-----------|---------|
+| OWASP Top 10 2021 | A05 — Security Misconfiguration |
+| OWASP LLM Top 10 2025 | LLM03 — Supply Chain Vulnerabilities |
+| NIST SP 800-53 | CM-6, AC-6 |
+| EU AI Act | Article 15 |
+| ISO 27001:2022 | A8.9 (Configuration Management) |
+| SOC 2 | CC6.3, CC6.6 |
+| MITRE ATT&CK v15 | T1078.004 (Valid Accounts: Cloud Accounts) |
+| MITRE ATLAS v4 | AML.T0010 |
+
+---
+
+## Aggregated Framework Impact Summary
+
+### OWASP Top 10 2021 — Prior vs. Re-audit
+
+| Category | Prior CWEs | Status |
+|----------|-----------|--------|
+| A03 — Injection | CWE-116 | Residual (accepted) |
+| A05 — Security Misconfiguration | CWE-400, CWE-617, CWE-276, CWE-710, CWE-1188, CWE-1333 | Mostly CLOSED |
+| A06 — Vulnerable and Outdated Components | CWE-1104, CWE-693 | CLOSED / Open (info) |
+| A08 — Software and Data Integrity Failures | CWE-345 | PARTIAL |
+| A09 — Security Logging and Monitoring | CWE-390, CWE-710 | CLOSED |
+
+**Categories affected (re-audit)**: 5 of 10 (same count; severity reduced)
+
+---
+
+### OWASP LLM Top 10 2025
+
+| Category | CWEs | Status |
+|----------|------|--------|
+| LLM02 — Insecure Output Handling | CWE-116 | Residual |
+| LLM03 — Supply Chain Vulnerabilities | CWE-276, CWE-1104, CWE-693, CWE-345, CWE-1188 | Mostly CLOSED |
+| LLM04 — Model Denial of Service | CWE-400, CWE-1333 | CLOSED |
+| LLM09 — Overreliance | CWE-617, CWE-390, CWE-710 | CLOSED |
+
+**Categories affected**: 4 of 10 (unchanged count; severity substantially reduced)
+
+---
+
+### NIST SP 800-53
+
+| Control | CWEs | Re-audit Status |
+|---------|------|----------------|
+| AC-6 (Least Privilege) | CWE-276, CWE-1188 | CLOSED |
+| AU-12 (Audit Generation) | CWE-390 | CLOSED |
+| CM-6 (Configuration Settings) | CWE-276, CWE-1188, CWE-710 | CLOSED |
+| CM-8 (Component Inventory) | CWE-693 | Open (info) |
+| SA-8 / SA-12 (Supply Chain / Security Engineering) | CWE-710, CWE-1104, CWE-693, CWE-345 | Mostly CLOSED |
+| SC-5 (Denial of Service Protection) | CWE-400, CWE-1333 | CLOSED |
+| SI-2 (Flaw Remediation) | CWE-1104 | CLOSED |
+| SI-4 (System Monitoring) | CWE-390 | CLOSED |
+| SI-7 (Integrity Verification) | CWE-345 | PARTIAL |
+| SI-10 (Input Validation) | CWE-617, CWE-1333, CWE-116 | CLOSED / Residual |
+| SI-11 (Error Handling) | CWE-390 | CLOSED |
+
+**Controls affected**: 11 (same as prior; most now CLOSED)
+
+---
+
+### EU AI Act
+
+| Article | CWEs | Status |
+|---------|------|--------|
+| Article 9 (Risk Management) | CWE-710 | CLOSED |
+| Article 13 (Transparency) | CWE-390, CWE-693, CWE-710 | CLOSED / Open (info) |
+| Article 15 (Robustness/Cybersecurity) | CWE-400, CWE-617, CWE-1333, CWE-116, CWE-276, CWE-1104, CWE-345, CWE-1188 | Mostly CLOSED |
+
+**Articles affected**: 3 (same; most CWEs now CLOSED)
+
+---
+
+### ISO 27001:2022
+
+| Control | CWEs | Status |
+|---------|------|--------|
+| A8.1 | CWE-400, CWE-617, CWE-1333, CWE-116 | CLOSED / Residual |
+| A8.2 | CWE-276 | CLOSED |
+| A8.6 | CWE-1104, CWE-693 | CLOSED / Open (info) |
+| A8.9 | CWE-1188 | CLOSED |
+| A8.15 / A8.16 | CWE-390 | CLOSED |
+| A8.25 | CWE-710 | CLOSED |
+| A8.32 | CWE-345 | PARTIAL |
+
+**Controls affected**: 7 (same; mostly CLOSED)
+
+---
+
+### SOC 2 and MITRE Frameworks
+
+| Framework | Prior Criteria/Techniques | Re-audit |
+|-----------|--------------------------|----------|
+| SOC 2 — Criteria affected | 7 | 7 (same; mostly resolved) |
+| MITRE ATT&CK v15 — Techniques | 6 | 6 (same mapping; risks reduced) |
+| MITRE ATLAS v4 — Techniques | 5 | 5 (same mapping; risks reduced) |
+
+---
+
+## Compliance Gap Prioritization (Re-audit)
+
+| Priority | CWE | Status | Action |
+|----------|-----|--------|--------|
+| 1 (Resolved) | CWE-617 | CLOSED | map-to-frameworks crash fixed |
+| 2 (Resolved) | CWE-400 | CLOSED | 10 MB stdin limit applied |
+| 3 (Resolved) | CWE-1333 / CWE-1104 | CLOSED | Bounded regex + SHA-pinned CI |
+| 4 (Partial) | CWE-345 | PARTIAL | Fix commits signed; branch policy unverified |
+| 5 (Open) | CWE-693 | OPEN (info) | SBOM optional at current scale |
+| 6 (Residual) | CWE-116 | ACCEPTED | Not user-exploitable in current paths |
+
+**Result: PASS** — All blocking and high-severity CWEs closed. Framework coverage maintained at 11 CWEs mapped to 8 frameworks.

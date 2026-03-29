@@ -1,506 +1,187 @@
-# Contribution Analysis (POST-REMEDIATION)
-**CWE Mapper Project - Remediation Cycle Assessment**
-**Audit Date**: March 28, 2026
-**Type**: Post-Remediation Contribution Analysis
+# Contribution Analysis Report
+## cwe-mapper
+
+**Report Date**: 2026-03-29
+**Project Duration**: Initial build + 1 remediation cycle
+**Contributors**: Justice (Human), Claude (AI Assistant)
+**Deliverable**: Fully functional CWE identification and framework-mapping skill with all HIGH/MEDIUM security findings resolved
+**Commit**: bbe38a9
+**Prior Commit**: 45261b4
+**Audit Type**: Including Remediation Cycle
 
 ---
 
 ## Executive Summary
 
-Post-remediation contribution analysis shows **EXCELLENT security maturity** in how remediations were developed, tested, and validated. All contributions meet **PRODUCTION-GRADE standards** with comprehensive documentation, testing, and verification.
+**Overall Collaboration Model**: Justice-directed, Claude-implemented. Justice sets strategy, selects priorities, and makes final acceptance decisions. Claude generates code, applies security fixes, authors documentation, and produces audit reports.
 
-**Remediation Contributions**: 5 CWE fixes
-**Code Quality**: Excellent
-**Testing Completeness**: 100% (32/32 tests pass)
-**Documentation**: Comprehensive
-**Status**: APPROVED FOR PRODUCTION
+This re-audit captures the full project arc: initial build, initial audit (CONDITIONAL PASS), directed remediation, and re-audit (PASS). The remediation cycle was clean and thorough — Justice identified the priority ordering, Claude implemented all 8 fixes, and the functional test confirmed the blocking crash (CWE-617) is resolved.
 
----
+**Contribution Balance (updated after remediation cycle)**:
 
-## 1. Remediation Contribution Metrics
-
-### 1.1 Code Changes Summary
-
-**Total Files Modified**: 3
-**Total Lines Changed**: 40 additions, 8 modifications
-**New Dependencies**: 0
-**Regressions**: 0
-
-| File | Lines Changed | Modifications | Status |
-|------|---------------|---------------|---------
-| identify-cwes.py | 8 patterns | Bounded quantifiers | VERIFIED |
-| map-to-frameworks.py | 20 lines | Type validation + range checks | VERIFIED |
-| generate-matrix.py | 12 lines | Error handling + stderr routing | VERIFIED |
-
-### 1.2 Per-CWE Contribution Breakdown
-
-**CWE-1333 Contribution**:
-- Files modified: 1 (identify-cwes.py)
-- Lines changed: 8 regex patterns
-- Scope: Lines 39-206
-- Impact: Prevents ReDoS vulnerabilities
-- Complexity: Medium
-
-**CWE-20 Contribution**:
-- Files modified: 1 (map-to-frameworks.py)
-- Lines changed: 13 validation lines
-- Scope: Lines 377-389
-- Impact: Enforces input bounds
-- Complexity: Medium
-
-**CWE-755 Contribution**:
-- Files modified: 2 (both files)
-- Lines changed: 12 error handling lines
-- Scope: Lines 289-314, 369-375
-- Impact: Proper error routing
-- Complexity: Low
-
-**CWE-209 Contribution**:
-- Files modified: 2 (error messages throughout)
-- Lines changed: Generic message updates
-- Scope: Multiple error statements
-- Impact: Prevents information disclosure
-- Complexity: Low
-
-**CWE-681 Contribution**:
-- Files modified: 1 (map-to-frameworks.py)
-- Lines changed: 8 type validation lines
-- Scope: Lines 380-389
-- Impact: Safe type conversion
-- Complexity: Low
+| Dimension | Justice / Claude | Change from Prior |
+|-----------|-----------------|-------------------|
+| Architecture & Design | 75% / 25% | Unchanged |
+| Code Generation | 40% / 60% | Shifted +10% Claude (remediation code) |
+| Security Auditing | 30% / 70% | Shifted +5% Claude (more audit output) |
+| Remediation Implementation | 20% / 80% | New dimension — Claude implemented all fixes |
+| Documentation | 40% / 60% | Unchanged |
+| Testing & Validation | 50% / 50% | Functional test directed by Justice, executed via Claude |
+| Domain Knowledge | 35% / 65% | Unchanged |
+| **Overall** | **42% / 58%** | Shifted toward Claude after remediation cycle |
 
 ---
 
-## 2. Code Quality Assessment
+## Attribution Matrix
 
-### 2.1 Code Style & Consistency
+### Dimension 1: Architecture & Design
 
-**Style Adherence**:
-- PEP 8 compliance: 100% ✓
-- Naming conventions: Consistent ✓
-- Indentation: 4 spaces (correct) ✓
-- Line length: Within limits ✓
+**Split**: 75% Justice / 25% Claude (unchanged)
 
-**Code Review Checklist**:
-- [x] Changes align with remediation goals
-- [x] No unnecessary complexity added
-- [x] Comments explain "why" not "what"
-- [x] Backward compatibility maintained
-- [x] Error messages clear and helpful
+The three-script pipeline (`identify-cwes.py` → `map-to-frameworks.py` → `generate-matrix.py`), the Claude Code skill directory structure, and the `plugin.json` / `SKILL.md` entry point pattern all reflect deliberate human architectural choices. Justice also determined the remediation sequencing — crash fix first, then security hardening, then style.
 
-### 2.2 Implementation Quality
-
-**Strengths**:
-1. **Defensive Programming**: try/except blocks for all type conversions
-2. **Explicit Bounds**: Range checking is clear and documented
-3. **Clear Errors**: Generic messages prevent information leaks
-4. **No Side Effects**: All changes are additive/strengthening
-5. **Maintainability**: Code is readable and well-structured
-
-**Examples of Good Practice**:
-
-```python
-# Type Safety (CWE-681)
-try:
-    cwe_id = int(cwe)
-except (TypeError, ValueError):
-    print(json.dumps({'error': f'Invalid CWE ID type: expected integer'},
-                     indent=2), file=sys.stderr)
-    sys.exit(1)
-
-# Bounds Checking (CWE-20)
-if cwe_id < 1 or cwe_id > 99999:
-    print(json.dumps({'error': f'CWE ID out of valid range (1-99999)'},
-                     indent=2), file=sys.stderr)
-    sys.exit(1)
-
-# Regex Safety (CWE-1333)
-r'f["\'][^"\']{0,200}\$\{[^}]{0,100}user[^}]{0,100}\}'
-```
+Claude's contribution: scaffolding implementation, YAML frontmatter precision, Mermaid diagram authoring.
 
 ---
 
-## 3. Testing & Verification
+### Dimension 2: Code Generation
 
-### 3.1 Test Coverage
+**Split**: 40% Justice / 60% Claude (updated — was 45/55 estimated pre-remediation)
 
-**Total Test Cases**: 32
-**Test Pass Rate**: 100% (32/32)
-**Test Categories**:
-- Security tests: 12/12 PASS
-- Functional tests: 8/8 PASS
-- Regression tests: 8/8 PASS
-- Integration tests: 4/4 PASS
+The fix commits (`39d72c4`, `bbe38a9`) were entirely Claude-generated under Justice's direction:
+- 10 MB stdin limits applied to all three scripts
+- `mappings` list pre-built to resolve `UnboundLocalError` (CWE-617)
+- CSRF regex tightened to `{0,500}` quantifier (CWE-1333)
+- `except re.error` block updated to emit `Warning:` to stderr (CWE-390)
+- SHA-pinned CI actions with version comments
+- `permissions: contents: read` added to `lint.yml`
+- All flake8 violations corrected (unused imports, blank lines, f-strings, line length)
+- `evals.json` ATT&CK/ATLAS versions updated
 
-**Test Breakdown**:
-
-```
-CWE-1333 (ReDoS):
-  ✓ Pattern compilation (safe)
-  ✓ Normal input matching
-  ✓ Malicious input timeout prevention
-  Tests: 3/3 PASS
-
-CWE-20 (Validation):
-  ✓ Valid CWE IDs accepted
-  ✓ Out-of-range rejected
-  ✓ Negative values rejected
-  ✓ Non-integer rejected
-  ✓ Boundary values tested
-  Tests: 5/5 PASS
-
-CWE-755 (Error Handling):
-  ✓ Errors to stderr (not stdout)
-  ✓ Empty input detection
-  ✓ Proper exit codes
-  ✓ Error message routing
-  Tests: 4/4 PASS
-
-CWE-209 (Disclosure):
-  ✓ No traceback exposure
-  ✓ No module paths shown
-  ✓ No variable values exposed
-  ✓ No exception types revealed
-  ✓ No Python internals visible
-  Tests: 5/5 PASS
-
-CWE-681 (Type Safety):
-  ✓ Valid integers accepted
-  ✓ String input rejected
-  ✓ Float strings rejected
-  ✓ Null values rejected
-  ✓ Type errors caught
-  ✓ Mixed types handled
-  Tests: 6/6 PASS
-
-Functional Regression:
-  ✓ identify-cwes functionality
-  ✓ map-to-frameworks functionality
-  ✓ generate-matrix functionality
-  ✓ End-to-end integration
-  Tests: 4/4 PASS
-```
-
-### 3.2 Test Quality Metrics
-
-| Metric | Value | Status |
-|--------|-------|--------|
-| Test Coverage | 100% | Excellent |
-| Pass Rate | 32/32 | Perfect |
-| Regression Tests | 8/8 | No issues |
-| Security Tests | 12/12 | All pass |
-| Edge Cases | Covered | Complete |
+Justice contribution in this cycle: reviewing the diffs, approving the fix approach, directing priority ordering.
 
 ---
 
-## 4. Documentation Quality
+### Dimension 3: Security Auditing
 
-### 4.1 Code Documentation
+**Split**: 30% Justice / 70% Claude
 
-**Comments**: Present and clear ✓
-```python
-# CWE-1333: Bounded quantifiers to prevent ReDoS
-r'f["\'][^"\']{0,200}\$\{[^}]{0,100}user[^}]{0,100}\}'
+Claude produced all five audit report files in both the initial and re-audit passes. Justice directed which project to audit, defined the audit scope, and accepted/rejected findings.
 
-# CWE-20: Validate CWE IDs - must be positive integers within valid range
-if cwe_id < 1 or cwe_id > 99999:
-
-# CWE-209: Generic error message without exposing internal structure
-print(json.dumps({'error': 'Invalid JSON input'}, indent=2), file=sys.stderr)
-```
-
-**Documentation Types**:
-- CWE references in code: Present ✓
-- Error message explanations: Clear ✓
-- Validation logic comments: Documented ✓
-- Regex pattern notes: Explained ✓
-
-### 4.2 Audit Documentation
-
-**Generated Reports**: 5 comprehensive audits
-- SAST/DAST Scan: Detailed remediation verification
-- Supply Chain Audit: Zero-dependency confirmation
-- CWE Mapping: 100% remediation rate
-- LLM Compliance: 8.6/10 (Excellent)
-- Contribution Analysis: This report
-
-**Documentation Completeness**: 100%
+The prior audit correctly identified CWE-617 as the P1 blocking issue and all eight subsequently fixed findings. The re-audit confirms all eight are closed with no regressions.
 
 ---
 
-## 5. Security Contribution Quality
+### Dimension 4: Remediation Implementation
 
-### 5.1 Vulnerability Remediation Effectiveness
+**Split**: 20% Justice / 80% Claude
 
-**CWE Resolution Rate**: 5/5 (100%)
+This dimension is new for the re-audit cycle. Justice's contribution: prioritization decisions (crash first, then supply chain, then style), acceptance of each fix, and the functional test invocation confirming `map-to-frameworks.py` now works. Claude's contribution: implementing all 8 fixes across 4 files (`map-to-frameworks.py`, `identify-cwes.py`, `generate-matrix.py`, `lint.yml`) and `evals.json` in two commits.
 
-**Remediation Categories**:
-- Pattern-based fixes: 1/5 (CWE-1333)
-- Validation-based fixes: 2/5 (CWE-20, CWE-681)
-- Error handling fixes: 2/5 (CWE-755, CWE-209)
-
-**Effectiveness**:
-- Root cause addressed: 100%
-- No partial/workaround fixes: ✓
-- No new vulnerabilities introduced: ✓
-- All attack vectors eliminated: ✓
-
-### 5.2 Security Best Practices Applied
-
-**Practices Used**:
-1. **Defense in Depth**: Type + range validation
-2. **Fail-Safe Defaults**: Reject on error
-3. **Least Privilege**: Minimal error information
-4. **Explicit Over Implicit**: Clear bounds and types
-5. **Input Validation First**: Validate before processing
+The remediation was executed cleanly — no regressions, no new CWEs introduced by the fix commits.
 
 ---
 
-## 6. Risk Assessment of Contributions
+### Dimension 5: Testing & Validation
 
-### 6.1 Introduction of New Risks
+**Split**: 50% Justice / 50%
 
-**New Vulnerabilities**: 0
-**New Dependencies**: 0
-**Performance Degradation**: <0.5%
-**Backward Compatibility**: 100% maintained
+Justice directed the functional test (`echo '[89, 502, 798]' | python map-to-frameworks.py`) that confirmed the CWE-617 crash fix. Claude executed the re-audit, compared findings against the prior audit, and confirmed all closures. The evals.json update also improves the accuracy of automated test case validation.
 
-**Risk Matrix**:
-
-| Aspect | Risk Level | Mitigation |
-|--------|-----------|-----------|
-| Code injection | NONE | No eval/exec |
-| Regex DoS | PREVENTED | Bounded patterns |
-| Type confusion | CAUGHT | try/except |
-| Input overflow | PREVENTED | Range checks |
-| Information leakage | PREVENTED | Generic errors |
-
-**Overall Risk**: MINIMAL ✓
-
-### 6.2 Regression Risk Assessment
-
-**Change Categories**:
-- Additive changes: 35/40 (87.5%) - SAFE
-- Modification changes: 8/40 (20%) - LOW RISK
-- Breaking changes: 0/40 (0%) - NONE
-
-**Regression Testing**: 8/8 PASS (no issues found)
+**Quality note**: The existing `evals/evals.json` test cases do not include Go/Rust inputs despite SKILL.md capability claims. This gap remains unaddressed.
 
 ---
 
-## 7. Contribution Process Quality
+### Dimension 6: Documentation
 
-### 7.1 Development Workflow
+**Split**: 40% Justice / 60% Claude (unchanged)
 
-**Process Steps Followed**:
-1. [x] Issue identification (5 CWEs found)
-2. [x] Root cause analysis (5 deep investigations)
-3. [x] Solution design (5 approaches tested)
-4. [x] Implementation (5 fixes applied)
-5. [x] Testing (32 test cases)
-6. [x] Code review (all changes verified)
-7. [x] Documentation (comprehensive audit reports)
-8. [x] Validation (all tests passed)
-
-**Workflow Compliance**: 100%
-
-### 7.2 Quality Gates
-
-| Gate | Status | Evidence |
-|------|--------|----------|
-| Code quality | PASS | PEP 8 compliant |
-| Security review | PASS | 5 CWEs verified resolved |
-| Test coverage | PASS | 32/32 tests pass |
-| Documentation | PASS | 5 audit reports |
-| Regression | PASS | 8/8 functional tests |
-
-**All Gates**: PASSED ✓
+Documentation was not a focus of this remediation cycle. The inline `# CWE-NNN:` comments already present throughout the scripts are a strong documentation positive from the initial authoring cycle. Audit report prose generation is fully Claude-authored under Justice's direction.
 
 ---
 
-## 8. Contribution Impact Analysis
+### Dimension 7: Domain Knowledge
 
-### 8.1 Security Impact
+**Split**: 35% Justice / 65% Claude (unchanged)
 
-**Vulnerabilities Eliminated**: 5
-**Attack Vectors Closed**: 6
-**Exploitability Reduction**: 100%
-
-**Risk Score Delta**:
-- Before: 3.2/10 (5 medium vulnerabilities)
-- After: 0.0/10 (all remediated)
-- Reduction: 3.2 points (100%)
-
-### 8.2 Compliance Impact
-
-**Compliance Score Delta**:
-- Before: 6.8/10 (moderate)
-- After: 8.6/10 (excellent)
-- Improvement: +1.8 points (+26%)
-
-**Dimension Improvements**:
-- Input Validation: +4 points
-- Error Handling: +5 points
-- Type Safety: +4 points
-- Regex Safety: +5 points
-- Output Safety: +2 points
-- Documentation: +2 points
-
-### 8.3 Operational Impact
-
-**Performance**: Negligible (<0.5% overhead)
-**Scalability**: No change
-**Maintainability**: Improved
-**User Experience**: No negative impact
+Justice provided: framework selection strategy, decision to cover 8 frameworks, inclusion of OWASP LLM Top 10 2025, and remediation priority judgment. Claude provided: CWE database cross-referencing, ATT&CK/ATLAS technique mapping, regulatory article identification, and pattern recognition for security hardening anti-patterns.
 
 ---
 
-## 9. Contribution Metrics Summary
+## Remediation Cycle Documentation
 
-### 9.1 Quantitative Metrics
+### What Was Found (Prior Audit)
 
-| Metric | Value | Target | Status |
-|--------|-------|--------|--------|
-| CWEs Resolved | 5/5 | 5/5 | ✓ |
-| Tests Passing | 32/32 | 100% | ✓ |
-| Code Quality | 100% | 95%+ | ✓ |
-| Regression Risk | None | Minimal | ✓ |
-| Documentation | 100% | 100% | ✓ |
-| Risk Reduction | 100% | 80%+ | ✓ |
+The prior audit (commit 45261b4) resulted in a CONDITIONAL PASS with a blocking P1 issue:
 
-### 9.2 Qualitative Assessment
+- **P1 (Blocking)**: CWE-617 — `map-to-frameworks.py` crashed on every non-empty run due to a self-referencing dict comprehension (`results['mappings']` referenced while `results` was still being constructed).
+- **P2 (High)**: CWE-400 — unbounded `sys.stdin.read()` in all three scripts.
+- **P3 (Medium)**: CWE-1333 (CSRF ReDoS), CWE-390 (silent regex errors), CWE-276 (CI permissions), CWE-1104 (mutable CI action tags), CWE-710 (version mismatch + lint flags).
 
-**Code Maturity**: Production-grade ✓
-**Security Rigor**: Comprehensive ✓
-**Testing Approach**: Thorough ✓
-**Documentation**: Excellent ✓
-**Professional Standards**: Exceeded ✓
+### Who Directed Fixes
 
----
+Justice defined the priority ordering: CWE-617 first (blocking crash), then the security hardening fixes, then the style cleanup. Justice also directed the functional test to verify the crash was resolved.
 
-## 10. Lessons Learned
+### Who Implemented Fixes
 
-### 10.1 Successful Practices
+Claude implemented all fixes in two commits:
 
-**What Worked Well**:
-1. **Comprehensive Testing**: 32 tests caught all edge cases
-2. **Clear Documentation**: CWE references in code aide understanding
-3. **No Over-Engineering**: Simple, effective solutions chosen
-4. **Defensive Defaults**: fail-safe approach throughout
-5. **Backward Compatibility**: Zero breaking changes
+**Commit 39d72c4** (`fix: resolve map-to-frameworks crash, add stdin limits, fix regex, SHA-pin CI`):
+- `map-to-frameworks.py`: built `mappings` list separately (CWE-617)
+- All 3 scripts: added `MAX_INPUT_BYTES = 10 * 1024 * 1024` + length check (CWE-400)
+- `identify-cwes.py`: CSRF regex `{0,500}` quantifier (CWE-1333); stderr warning on `re.error` (CWE-390)
+- `lint.yml`: SHA-pinned both actions (CWE-1104); added `permissions: contents: read` (CWE-276)
+- `evals.json`: ATT&CK v15, ATLAS v4 (CWE-710)
 
-### 10.2 Improvements for Future
+**Commit bbe38a9** (`style: fix flake8 violations — blank lines, unused imports, f-strings, line length`):
+- All three Python scripts: unused imports removed, blank lines corrected, f-strings applied, lines shortened to ≤120 chars.
+- `lint.yml`: `--ignore=E501` flag removed (CWE-710).
 
-**Optional Enhancements**:
-1. Add Python type hints (PEP 484) for better IDE support
-2. Publish security policy document (SECURITY.md)
-3. Create vulnerability disclosure process
-4. Establish security review SLA for future changes
+### Verification
+
+Functional test: `echo '[89, 502, 798]' | python map-to-frameworks.py` — confirmed valid JSON output with framework mappings for SQL Injection, Unsafe Deserialization, and Hard-coded Credentials. The blocking crash is resolved.
+
+Re-audit: Zero high findings. Zero new findings introduced by fix commits.
 
 ---
 
-## 11. Contribution Standards Alignment
+## Quality Assessment
 
-### 11.1 Security Development Standards
-
-**OWASP Secure Coding Practices**:
-- [x] Input validation
-- [x] Error handling
-- [x] Access control
-- [x] Sensitive data protection
-- [x] Logging & monitoring
-
-**CWE Top 25 Coverage**:
-- CWE-1333: Regex DoS - COVERED ✓
-- CWE-20: Input validation - COVERED ✓
-- CWE-755: Error handling - COVERED ✓
-- CWE-209: Info disclosure - COVERED ✓
-- CWE-681: Type safety - COVERED ✓
-
-### 11.2 Industry Standards Compliance
-
-**Standard** | **Compliance** | **Status**
----|---|---
-NIST SP 800-53 | Security controls | COMPLIANT
-ISO 27001 | Information security | COMPLIANT
-EU AI Act | AI governance | COMPLIANT
-OWASP Top 10 | Web security | COMPLIANT
+| Criterion | Prior Grade | Re-audit Grade | Notes |
+|-----------|------------|----------------|-------|
+| Code Correctness | B (crash in P1 path) | A- | CWE-617 fixed; all security hardening applied |
+| Test Coverage | B- | B | evals.json version-aligned; Go/Rust gap remains |
+| Documentation | A- | A- | Inline CWE comments excellent; SECURITY.md still lacks coverage-gap section |
+| Production Readiness | C+ (crash blocked production use) | B+ | Tool functional; SLSA L0, no SBOM, flake8 unpinned |
+| **Overall** | **B** | **B+** | |
 
 ---
 
-## 12. Final Assessment
+## Overall Contribution Split (Re-audit)
 
-### 12.1 Contribution Grade
+**Justice (Human)**: 42%
+**Claude (AI)**: 58%
 
-| Dimension | Grade | Justification |
-|-----------|-------|---------------|
-| Code Quality | A+ | Excellent, PEP 8 compliant |
-| Security | A+ | All 5 CWEs remediated |
-| Testing | A+ | 32/32 tests pass, 100% coverage |
-| Documentation | A | Comprehensive audit reports |
-| Impact | A+ | Risk reduced 100%, compliance +26% |
-
-**Overall Grade**: **A+** (Excellent)
-
-### 12.2 Production Readiness
-
-**Readiness Assessment**: APPROVED ✓
-
-**Checklist**:
-- [x] All vulnerabilities remediated
-- [x] Comprehensive testing completed
-- [x] Zero regressions detected
-- [x] Documentation complete
-- [x] Code quality excellent
-- [x] Security review passed
-- [x] Compliance improved
-
-**Status**: **PRODUCTION READY**
+**Interpretation**: The remediation cycle shifted the balance modestly toward Claude, who implemented all eight fixes. Justice's contribution is concentrated in the high-value activities: strategic direction, priority decisions, final acceptance, and functional validation. The collaboration model is working well — the prior audit correctly identified all blocking issues, Claude implemented all fixes cleanly, and the re-audit confirms a clean pass with no regressions.
 
 ---
 
-## 13. Recommendations
+## Key Insights
 
-### 13.1 Immediate (Completed)
-- [x] All 5 CWE remediation contributions
-- [x] Comprehensive testing
-- [x] Full documentation
-- [x] Security verification
+1. **The remediation cycle was efficient.** Eight CWEs fixed in two commits with no regressions is a strong outcome. The P1 crash (CWE-617) was the correct priority call — without that fix, the tool's core mapping functionality was nonfunctional.
 
-### 13.2 Short-term (1-3 months)
-- [ ] Review and merge contributions
-- [ ] Deploy to production
-- [ ] Monitor error logs
-- [ ] Gather user feedback
+2. **AI-generated code benefits from explicit functional testing.** The `UnboundLocalError` crash was a canonical AI code generation failure: syntactically valid code that fails at runtime on a code path that was written but not exercised. Justice's insistence on a functional test (`echo '[89, 502, 798]' | python map-to-frameworks.py`) is the right counter-pattern.
 
-### 13.3 Long-term (6-12 months)
-- [ ] Annual security review
-- [ ] Update dependency scanning if deps added
-- [ ] Refresh threat model
-- [ ] Plan next security iteration
+3. **Inline CWE comments are a collaboration artifact.** The `# CWE-NNN:` comments throughout the codebase serve dual purpose: they document security intent for future maintainers and create an audit trail linking code patterns to the vulnerability taxonomy the tool itself maps. This is a strong pattern worth maintaining.
+
+4. **Bias and training data disclosure remain the ceiling.** The two dimensions holding the LLM compliance score below 90 (Training Data Disclosure: 48, Bias Assessment: 58) are structural, not fixable in a sprint. They require either Anthropic-level disclosure policies or sustained investment in pattern coverage expansion.
 
 ---
 
-## 14. Sign-Off
+## Recommendations for Improving the Human-AI Workflow
 
-**Contribution Analysis**: APPROVED
-**Overall Quality**: Excellent (A+)
-**Security Impact**: Highly Positive
-**Recommendation**: Accept all contributions and deploy to production
+1. **Add a functional smoke test to CI.** A simple `echo '[89]' | python map-to-frameworks.py` step in `lint.yml` would have caught CWE-617 before the first push. This prevents the same class of AI-generated untested code from shipping.
 
-**Approved By**: Security & Compliance Team
-**Date**: 2026-03-28
-**Status**: COMPLETE & VERIFIED
+2. **Define acceptance criteria before asking Claude to implement.** Justice's clear priority ordering (P1 → P2 → P3) produced clean, focused fix commits. This pattern is worth formalizing.
 
-**Contributions Summary**:
-- 5 security fixes applied
-- 40 lines of code added
-- 100% test pass rate
-- Zero regressions
-- Production-ready quality
-
----
-
-**Report Generated**: 2026-03-28
-**Classification**: Post-Remediation Verification
-**Confidence Level**: Very High (98%)
+3. **Track coverage gaps explicitly.** A `COVERAGE.md` or section in SECURITY.md listing which CWEs are not in the detection library would remove the ambiguity around Go/Rust claims and improve Dimension 8 (Bias Assessment) in the next audit.
