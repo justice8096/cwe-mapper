@@ -1,6 +1,6 @@
 {
   "name": "CWE Mapper",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Security vulnerability classification and regulatory framework mapping for CWE IDs, OWASP, NIST, EU AI Act, and compliance frameworks",
   "author": "Justice",
   "license": "MIT",

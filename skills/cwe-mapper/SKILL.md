@@ -58,10 +58,8 @@ detection patterns and remediation notes.
   unsafe ORM/query construction in web frameworks
 - **Java** — XXE via unparsed XML processors, JNDI injection, unsafe
   reflection, known deserialization gadget chains
-- **Go** — concurrent map access without synchronization, unchecked interface
-  conversions, unsafe pointer operations
-- **Rust** — unsafe block misuse at FFI boundaries, lifetime violations in
-  unsafe code, type-reinterpretation errors
+- **Go** — not yet implemented; manual review recommended for concurrent map access, unsafe pointer usage
+- **Rust** — not yet implemented; manual review recommended for unsafe blocks and FFI boundaries
 
 ### 2. Framework Mapping
 
