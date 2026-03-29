@@ -1,5 +1,8 @@
 # CWE Mapper: Security Vulnerability Classification & Regulatory Mapping
 
+![Lint](https://github.com/justice8096/cwe-mapper/actions/workflows/lint.yml/badge.svg)
+![Release](https://img.shields.io/github/v/release/justice8096/cwe-mapper)
+
 A Claude Code skill for identifying, classifying, and mapping code vulnerabilities to CWE IDs, OWASP categories, and regulatory frameworks.
 
 ## Overview
