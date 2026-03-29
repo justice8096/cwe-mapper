@@ -98,9 +98,18 @@ cwe-mapper/
 
 ## Installation
 
-1. Copy the `cwe-mapper` skill to your Claude skills directory
-2. Run Claude Code with `--skills cwe-mapper`
-3. Or use within any Claude context that has skill access
+```bash
+git clone git@github.com:justice8096/cwe-mapper.git ~/.claude/plugins/cwe-mapper
+```
+
+## Workflow
+
+```mermaid
+flowchart LR
+    A[Analyze Code\nor Report] --> B[Identify CWEs\nPattern Matching\n+ Confidence Score]
+    B --> C[Map to 8 Frameworks\nOWASP · NIST · EU AI Act\nISO 27001 · SOC 2 · MITRE]
+    C --> D[Generate\nCompliance Matrix\nCWE × Framework]
+```
 
 ## Examples
 

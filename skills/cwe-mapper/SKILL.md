@@ -1,271 +1,247 @@
-# CWE Mapper: Vulnerability Classification & Regulatory Mapping
+---
+name: cwe-mapper
+description: >
+  This skill should be used when the user asks to identify CWEs in code,
+  classify a vulnerability by weakness type, map security findings to
+  compliance frameworks, or generate a compliance impact matrix. Trigger
+  phrases include: "what CWE is this", "classify this vulnerability",
+  "map this finding to OWASP/NIST/ISO/SOC 2", "generate a compliance
+  matrix", "which regulations does this affect", "security audit of this
+  code", "CWE analysis", "weakness enumeration".
+---
 
-**Author**: Justice
-**Version**: 1.0.0
-**License**: MIT
+# CWE Mapper
 
-## Overview
-
-CWE Mapper is a security vulnerability classification skill that helps developers and security teams:
-- Identify vulnerabilities in code using pattern matching
-- Classify findings to CWE (Common Weakness Enumeration) IDs with confidence scores
-- Map vulnerabilities to OWASP, NIST, EU AI Act, ISO 27001, SOC 2, and MITRE frameworks
-- Generate compliance impact matrices showing which regulations are affected
-
-## Skill Triggers
-
-This skill activates on:
-- "CWE", "weakness", "vulnerability classification"
-- "Map this vulnerability", "What CWE is this?"
-- "Compliance matrix", "Which regulations does this affect?"
-- "Security finding", "Vulnerability report"
-- "Classify this bug", "MITRE mapping"
-- Code analysis requests with security focus
-- Regulatory compliance questions
-
-## Quick Reference: CWE Top 25 (2024)
-
-The 25 most dangerous software weaknesses to watch for:
-
-| # | CWE | Name | Severity | Detection Pattern | OWASP |
-|---|-----|------|----------|------------------|-------|
-| 1 | 787 | Out-of-bounds Write | Critical | `memcpy`, `strcpy`, array access `[i]` | A02 |
-| 2 | 79 | Cross-site Scripting | High | `innerHTML=`, `eval()`, template injection | A03 |
-| 3 | 89 | SQL Injection | Critical | String concat queries, unsanitized params | A03 |
-| 4 | 416 | Use After Free | Critical | Pointer/reference after deallocation | A02 |
-| 5 | 78 | OS Command Injection | Critical | `exec()`, `system()`, backticks with user input | A03 |
-| 6 | 20 | Improper Input Validation | High | Missing input sanitization, no bounds check | Multiple |
-| 7 | 125 | Out-of-bounds Read | High | Array/buffer read beyond size | A02 |
-| 8 | 22 | Path Traversal | High | `../`, absolute path construction | A01 |
-| 9 | 352 | CSRF | Medium | State-changing ops without tokens | A01 |
-| 10 | 434 | Unrestricted Upload | High | File upload without type/size checks | A04 |
-| 11 | 862 | Missing Authorization | Critical | No authz checks on sensitive operations | A01 |
-| 12 | 476 | NULL Pointer Dereference | Medium | Null check missing before access | A02 |
-| 13 | 287 | Improper Authentication | Critical | Weak/missing auth mechanisms | A07 |
-| 14 | 190 | Integer Overflow | Medium | Integer arithmetic without bounds | A02 |
-| 15 | 502 | Deserialization of Untrusted Data | High | `pickle.loads()`, `ObjectInputStream.readObject()` | A08 |
-| 16 | 77 | Command Injection | Critical | Unsanitized command construction | A03 |
-| 17 | 119 | Buffer Overflow | Critical | Fixed buffers with unbounded input | A02 |
-| 18 | 798 | Hard-coded Credentials | High | API keys, passwords in source code | A05 |
-| 19 | 918 | Server-Side Request Forgery | High | Unsanitized URL fetching, file:// protocol | A10 |
-| 20 | 306 | Missing Authentication | Critical | Public access to critical functions | A01 |
-| 21 | 362 | Race Condition | Medium | Concurrent access without synchronization | A02 |
-| 22 | 269 | Improper Privilege Management | High | Privilege escalation paths | A01 |
-| 23 | 94 | Code Injection | Critical | `eval()`, `exec()`, dynamic compilation | A03 |
-| 24 | 863 | Incorrect Authorization | Critical | Authorization logic flaw | A01 |
-| 25 | 276 | Incorrect Default Permissions | Medium | Overly permissive default settings | A01 |
-
-## Core Capabilities
-
-### 1. Vulnerability Identification
-
-When you provide code, I analyze it for:
-- **Pattern matching**: Regex/AST patterns that indicate weakness
-- **Language-specific context**: JavaScript, Python, Java, Go, Rust semantics
-- **Evidence collection**: Exact lines and surrounding context
-- **Confidence scoring**: High/Medium/Low based on pattern specificity
-
-Example detection:
-```python
-# Input
-import pickle
-data = pickle.loads(request.get_json()['obj'])
-
-# Output
-{
-  "cwe_id": 502,
-  "name": "Deserialization of Untrusted Data",
-  "severity": "HIGH",
-  "confidence": "HIGH",
-  "line": 2,
-  "evidence": "pickle.loads(request.get_json()...)",
-  "remediation": "Use json.loads() or validate/sign serialized data"
-}
-```
-
-### 2. Framework Mapping
-
-Each CWE maps to multiple regulatory frameworks:
-
-**OWASP Top 10 2021** (A01-A10)
-- A01: Broken Access Control
-- A03: Injection
-- A04: Insecure Design
-- A05: Security Misconfiguration
-- A06: Vulnerable and Outdated Components
-- A07: Authentication Failures
-- A08: Data Integrity Failures
-- A09: Logging/Monitoring Failures
-- A10: SSRF
-
-**NIST SP 800-53** (Access Control, System & Comms Protection)
-- AC-2: Account Management
-- AC-6: Least Privilege
-- SI-10: Information System Monitoring
-- SC-4: Information Flow Enforcement
-
-**EU AI Act** (Risk Articles)
-- Article 15: Risk Assessment & Management
-- Article 35: Documentation Requirements
-- Article 37: Transparency & Disclosure
-
-**ISO 27001** (Information Security Controls)
-- A5.1: Organizational Controls
-- A6.1: Access Controls
-- A8.1: Cryptography
-
-**SOC 2** (Trust Service Criteria)
-- CC6.1: Logical & Physical Access Controls
-- CC7.1: System Monitoring
-
-### 3. Compliance Matrix Generation
-
-Given CWEs, I produce a matrix like:
-
-```
-Security Findings Impact Matrix
-===============================
-
-CWE-89 (SQL Injection)
-├─ OWASP: A03 Injection
-├─ NIST: SI-10 (Information System Monitoring)
-├─ EU AI Act: Article 15 (Risk Management)
-├─ ISO 27001: A8.1 (Cryptography/Input Validation)
-└─ SOC 2: CC7.1 (System Monitoring)
-
-CWE-502 (Unsafe Deserialization)
-├─ OWASP: A08 Data Integrity Failures
-├─ NIST: SI-10
-├─ EU AI Act: Article 15
-├─ ISO 27001: A8.1
-└─ SOC 2: CC6.1 (Access Controls)
-```
-
-## Language-Specific Detection
-
-### JavaScript/TypeScript
-- **DOM XSS**: `innerHTML=`, `eval()`, `Function()` constructor
-- **Prototype Pollution**: Object spread with user input, `Object.assign()`
-- **npm Vulnerabilities**: Serialization gadgets, dependency injection
-
-### Python
-- **Pickle Deserialization**: `pickle.loads()` with untrusted input
-- **Subprocess Injection**: Unshelled subprocess calls with user input
-- **Template SSTI**: Template rendering with user variables (Jinja2, Mako)
-- **Django/Flask**: Unsafe query construction, CORS misconfig
-
-### Java
-- **XML XXE**: SAXParser, DocumentBuilder without DTD disabling
-- **JNDI Injection**: `InitialContext.lookup()` with user input
-- **Unsafe Reflection**: `Class.forName()`, `Method.invoke()`
-- **Serialization Gadgets**: Commons-BeanUtils, Commons-Collections chains
-
-### Go
-- **Race Conditions**: Concurrent map access, shared channel state
-- **Unsafe Pointers**: Direct memory access without synchronization
-- **Type Assertion**: Unchecked interface conversions
-
-### Rust
-- **Unsafe Blocks**: Memory safety violations in FFI
-- **Lifetime Issues**: Use-after-free in unsafe code
-- **Type Confusion**: Memory reinterpretation errors
-
-## How I Work
-
-**Step 1: Analysis**
-- Parse code or review vulnerability report
-- Run pattern matching for each CWE in Top 25
-- Collect evidence with line numbers and context
-
-**Step 2: Classification**
-- Assign CWE IDs with confidence scores
-- Determine severity (Critical/High/Medium/Low)
-- Provide remediation guidance
-
-**Step 3: Mapping**
-- Correlate each CWE to OWASP categories
-- Identify applicable NIST controls
-- Check EU AI Act articles
-- Map to ISO 27001 and SOC 2 criteria
-- Link to MITRE ATT&CK/ATLAS techniques
-
-**Step 4: Reporting**
-- Generate compliance matrix
-- Show regulatory impact
-- Prioritize findings by severity and framework coverage
-
-## Reference Files
-
-See detailed mappings in:
-- **`references/cwe-top25-2024.md`**: Full CWE Top 25 with code patterns and remediations
-- **`references/cwe-owasp-mapping.md`**: CWE → OWASP 2021 & LLM Top 10 cross-reference
-- **`references/cwe-mitre-mapping.md`**: CWE → MITRE ATT&CK / ATLAS technique mappings
-- **`references/cwe-regulatory-mapping.md`**: CWE → NIST, EU AI Act, ISO 27001, SOC 2 detailed mappings
-
-## Scripts
-
-Helper scripts for automation:
-
-**`scripts/identify-cwes.py`**
-```bash
-cat vulnerable.py | python identify-cwes.py
-# Outputs: JSON array of {cwe_id, name, severity, line, evidence, confidence}
-```
-
-**`scripts/map-to-frameworks.py`**
-```bash
-echo '[89, 502, 798]' | python map-to-frameworks.py
-# Outputs: Mapping to OWASP, NIST, EU AI Act, ISO 27001, SOC 2
-```
-
-**`scripts/generate-matrix.py`**
-```bash
-cat findings.json | python generate-matrix.py > compliance-matrix.md
-# Outputs: Markdown compliance impact matrix
-```
-
-## Examples
-
-### Example 1: SQL Injection Detection
-```java
-String query = "SELECT * FROM users WHERE id = " + userId;
-Statement stmt = conn.createStatement();
-ResultSet rs = stmt.executeQuery(query);
-```
-**Identified**: CWE-89 (SQL Injection) → OWASP A03, NIST SI-10, EU AI Act Article 15
-
-### Example 2: Unsafe Deserialization
-```python
-import pickle
-user_obj = pickle.loads(request.get_json()['data'])
-```
-**Identified**: CWE-502 → OWASP A08, NIST SI-10, SOC 2 CC6.1
-
-### Example 3: Missing Authentication
-```javascript
-app.get('/admin/delete', (req, res) => {
-  db.delete(req.params.id);
-  res.send('Deleted');
-});
-```
-**Identified**: CWE-306, CWE-862 → OWASP A01, A07, NIST AC-2/AC-6
-
-## Next Steps
-
-1. **Analyze your code**: Paste code for automatic CWE detection
-2. **Ask about mappings**: "Map CWE-89 to NIST controls"
-3. **Generate matrix**: "Create a compliance matrix for these CWEs"
-4. **Get remediation**: "How do I fix CWE-502?"
-5. **Check frameworks**: "Which EU AI Act articles does this affect?"
-
-## Support & Feedback
-
-For issues, questions, or suggestions about CWE mappings, please refer to:
-- MITRE CWE Database: https://cwe.mitre.org/
-- OWASP: https://owasp.org/
-- NIST: https://csrc.nist.gov/
+A skill for identifying Common Weakness Enumeration (CWE) IDs from source
+code or vulnerability reports, mapping findings to eight regulatory and
+threat-intelligence frameworks, and generating a compliance impact matrix.
 
 ---
 
-**Last Updated**: 2024
-**Framework Versions**: OWASP 2021, NIST SP 800-53 Rev. 5, EU AI Act 2024, ISO 27001:2022, SOC 2 2022
+## Workflow Overview
+
+```
+1. Analyze input        ->  Parse code or vulnerability report
+2. Identify CWEs        ->  Pattern match -> CWE ID + confidence score
+3. Map to frameworks    ->  CWE -> OWASP / NIST / EU AI Act / ISO / SOC 2 / MITRE
+4. Generate matrix      ->  Produce CWE x framework compliance table
+```
+
+---
+
+## Capabilities
+
+### 1. CWE Identification
+
+Analyze source code or a written vulnerability description to assign one or
+more CWE IDs. For each finding, produce:
+
+| Field | Description |
+|-------|-------------|
+| `cwe_id` | Numeric CWE identifier (e.g., 89) |
+| `name` | Official MITRE name |
+| `severity` | Critical / High / Medium / Low |
+| `confidence` | High / Medium / Low based on pattern specificity |
+| `evidence` | Exact line(s) and surrounding context |
+| `remediation` | Concise fix guidance |
+
+Detection targets all 25 entries from CWE Top 25 (2024). See
+`references/cwe-top25-2024.md` for the complete list with per-language
+detection patterns and remediation notes.
+
+**Language-specific patterns covered:**
+
+- **JavaScript / TypeScript** — DOM XSS via unsafe HTML sinks, dynamic code
+  execution patterns, prototype pollution, insecure deserialization gadgets
+- **Python** — unsafe deserialization (CWE-502), subprocess injection,
+  server-side template injection in common templating libraries,
+  unsafe ORM/query construction in web frameworks
+- **Java** — XXE via unparsed XML processors, JNDI injection, unsafe
+  reflection, known deserialization gadget chains
+- **Go** — concurrent map access without synchronization, unchecked interface
+  conversions, unsafe pointer operations
+- **Rust** — unsafe block misuse at FFI boundaries, lifetime violations in
+  unsafe code, type-reinterpretation errors
+
+### 2. Framework Mapping
+
+Map each identified CWE to all applicable entries across eight frameworks.
+See `references/cwe-owasp-mapping.md`, `references/cwe-mitre-mapping.md`, and
+`references/cwe-regulatory-mapping.md` for the full cross-reference tables.
+
+**Supported frameworks:**
+
+| Framework | Scope |
+|-----------|-------|
+| OWASP Top 10 2021 | A01-A10 web application risk categories |
+| OWASP LLM Top 10 2025 | LLM01-LLM10 AI/LLM-specific risks |
+| NIST SP 800-53 Rev. 5 | AC, SI, SC, CM, IA control families |
+| EU AI Act (2024) | Articles 15, 35, 37 (risk, documentation, transparency) |
+| ISO 27001:2022 | Annex A controls (A5, A6, A8) |
+| SOC 2 | Trust Service Criteria CC6, CC7 |
+| MITRE ATT&CK | Tactics and techniques for initial access through exfiltration |
+| MITRE ATLAS | AI/ML adversarial technique mappings |
+
+### 3. Compliance Matrix Generation
+
+Produce a CWE x framework table that shows, for each finding, which
+framework entries are implicated. Use the table to prioritize remediation
+by regulatory exposure.
+
+Example matrix structure (abbreviated):
+
+```
+| CWE | Name                    | OWASP | NIST   | EU AI Act | ISO 27001 | SOC 2  |
+|-----|-------------------------|-------|--------|-----------|-----------|--------|
+| 89  | SQL Injection           | A03   | SI-10  | Art. 15   | A8.1      | CC7.1  |
+| 502 | Unsafe Deserialization  | A08   | SI-10  | Art. 15   | A8.1      | CC6.1  |
+| 798 | Hard-coded Credentials  | A05   | IA-5   | Art. 37   | A5.1      | CC6.1  |
+| 306 | Missing Authentication  | A07   | AC-2   | Art. 35   | A6.1      | CC6.1  |
+```
+
+---
+
+## Scripts
+
+Three automation scripts are available in `scripts/`. Run them from the repo
+root or pipe input via stdin.
+
+### `scripts/identify-cwes.py`
+
+Accepts source code on stdin and outputs a JSON array of findings.
+
+```bash
+cat vulnerable.py | python skills/cwe-mapper/scripts/identify-cwes.py
+```
+
+Output shape:
+
+```json
+[
+  {
+    "cwe_id": 502,
+    "name": "Deserialization of Untrusted Data",
+    "severity": "HIGH",
+    "confidence": "HIGH",
+    "line": 3,
+    "evidence": "<redacted for documentation — see script output>",
+    "remediation": "Use safe serialization formats; validate and sign data before deserializing."
+  }
+]
+```
+
+### `scripts/map-to-frameworks.py`
+
+Accepts a JSON array of CWE IDs on stdin and outputs framework mappings.
+
+```bash
+echo '[89, 502, 798]' | python skills/cwe-mapper/scripts/map-to-frameworks.py
+```
+
+### `scripts/generate-matrix.py`
+
+Accepts a JSON findings array (output of `identify-cwes.py`) on stdin and
+writes a Markdown compliance matrix to stdout.
+
+```bash
+cat findings.json | python skills/cwe-mapper/scripts/generate-matrix.py > compliance-matrix.md
+```
+
+Combine all three in a pipeline:
+
+```bash
+cat target.py \
+  | python skills/cwe-mapper/scripts/identify-cwes.py \
+  | tee findings.json \
+  | python skills/cwe-mapper/scripts/generate-matrix.py > matrix.md
+```
+
+---
+
+## Reference Files
+
+| File | Contents |
+|------|----------|
+| `references/cwe-top25-2024.md` | Full CWE Top 25 (2024) — severity, OWASP mapping, per-language detection patterns, and remediation guidance |
+| `references/cwe-owasp-mapping.md` | CWE -> OWASP Top 10 2021 and OWASP LLM Top 10 2025 cross-reference |
+| `references/cwe-mitre-mapping.md` | CWE -> MITRE ATT&CK tactic/technique and MITRE ATLAS technique mappings |
+| `references/cwe-regulatory-mapping.md` | CWE -> NIST SP 800-53, EU AI Act, ISO 27001, and SOC 2 detailed control mappings |
+
+---
+
+## Usage Examples
+
+### Identify CWEs in pasted code
+
+```
+Analyze the following code for security weaknesses and list CWE IDs
+with confidence scores:
+
+[paste code]
+```
+
+### Map specific CWEs to frameworks
+
+```
+Map CWE-89 and CWE-502 to NIST SP 800-53 controls and ISO 27001 Annex A.
+```
+
+### Generate a full compliance matrix
+
+```
+Generate a compliance matrix for these findings across OWASP, NIST,
+EU AI Act, ISO 27001, and SOC 2: CWE-89, CWE-502, CWE-862, CWE-798.
+```
+
+### Ask about regulatory exposure
+
+```
+Which EU AI Act articles are triggered by CWE-20 (Improper Input Validation)?
+```
+
+### Get remediation guidance
+
+```
+How do I fix CWE-502? Show me secure alternatives.
+```
+
+---
+
+## Confidence Scoring
+
+Assign confidence based on evidence quality:
+
+| Confidence | Criteria |
+|------------|----------|
+| High | Exact vulnerable API call with untrusted input confirmed in context |
+| Medium | Pattern match present but input trust level is ambiguous |
+| Low | Structural indicator only — manual review required to confirm exploitability |
+
+---
+
+## Output Format
+
+Default output for a CWE analysis response:
+
+1. **Summary table** — one row per finding: CWE ID, name, severity, confidence, line
+2. **Per-finding detail** — evidence snippet, affected frameworks, remediation
+3. **Compliance matrix** — CWE x framework grid if three or more findings
+4. **Prioritization note** — highlight Critical/High findings first; note any
+   frameworks with multiple triggered controls
+
+---
+
+## Authoritative Sources
+
+- MITRE CWE Database: https://cwe.mitre.org/
+- OWASP Top 10 2021: https://owasp.org/Top10/
+- OWASP LLM Top 10 2025: https://genai.owasp.org/
+- NIST SP 800-53 Rev. 5: https://csrc.nist.gov/publications/detail/sp/800-53/rev-5/final
+- EU AI Act: https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32024R1689
+- MITRE ATT&CK: https://attack.mitre.org/
+- MITRE ATLAS: https://atlas.mitre.org/
+
+---
+
+**Framework versions**: OWASP Top 10 2021, OWASP LLM Top 10 2025, NIST SP 800-53 Rev. 5,
+EU AI Act 2024, ISO 27001:2022, SOC 2 2022, MITRE ATT&CK v15, MITRE ATLAS v4.
