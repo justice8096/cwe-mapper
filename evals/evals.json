@@ -74,7 +74,7 @@
     "eu_ai_act": "2024",
     "iso_27001": "2022",
     "soc2": "2022",
-    "mitre_attack": "v13",
-    "mitre_atlas": "v1.0"
+    "mitre_attack": "v15",
+    "mitre_atlas": "v4"
   }
 }

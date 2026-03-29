@@ -362,8 +362,12 @@ def map_cwe(cwe_id: int) -> dict:
 
 def main():
     """Main entry point."""
+    MAX_INPUT_BYTES = 10 * 1024 * 1024  # 10 MB
     try:
-        raw_input = sys.stdin.read()
+        raw_input = sys.stdin.read(MAX_INPUT_BYTES)
+        if len(raw_input) == MAX_INPUT_BYTES:
+            print("Error: Input exceeds 10 MB maximum", file=sys.stderr)
+            sys.exit(1)
         cwe_list = json.loads(raw_input)
     except json.JSONDecodeError as e:
         # CWE-209: Generic error message without exposing internal structure
@@ -388,13 +392,14 @@ def main():
             sys.exit(1)
         validated_cwes.append(cwe_id)
 
+    mappings = [map_cwe(cwe) for cwe in validated_cwes]
     results = {
         'cwe_count': len(validated_cwes),
-        'mappings': [map_cwe(cwe) for cwe in validated_cwes],
+        'mappings': mappings,
         'frameworks': {
             framework: sorted(set(
                 item
-                for mapping in results['mappings']
+                for mapping in mappings
                 for item in mapping.get(framework, [])
             ))
             for framework in ['owasp_2021', 'owasp_llm', 'nist', 'eu_ai_act', 'iso_27001', 'soc2', 'mitre_attack', 'mitre_atlas']

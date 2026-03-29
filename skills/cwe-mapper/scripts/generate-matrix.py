@@ -286,8 +286,12 @@ def generate_matrix(findings: list) -> str:
 def main():
     """Main entry point."""
     # CWE-755: Proper error handling — errors to stderr with exit codes
+    MAX_INPUT_BYTES = 10 * 1024 * 1024  # 10 MB
     try:
-        raw_input = sys.stdin.read()
+        raw_input = sys.stdin.read(MAX_INPUT_BYTES)
+        if len(raw_input) == MAX_INPUT_BYTES:
+            print("Error: Input exceeds 10 MB maximum", file=sys.stderr)
+            sys.exit(1)
         if not raw_input.strip():
             print('Error: Empty input', file=sys.stderr)
             sys.exit(1)

@@ -115,7 +115,7 @@ CWE_PATTERNS = {
         'severity': 'MEDIUM',
         'patterns': [
             r'POST|PUT|DELETE.*without.*token|csrf',
-            r'form\s+method=["\']post["\'].*(?!csrf)',
+            r'form\s+method=["\']post["\'].{0,500}(?!csrf)',
             r"fetch\s*\(\s*[^,]+\s*,\s*\{\s*method\s*:\s*[\"'](POST|PUT|DELETE)",
         ],
         'languages': ['javascript', 'html', 'python'],
@@ -258,14 +258,19 @@ def find_cwe_matches(code: str, language: str) -> list:
                             'evidence': match.group(0).strip(),
                             'confidence': 'MEDIUM' if len(match.group(0)) > 20 else 'HIGH',
                         })
-            except re.error:
+            except re.error as exc:
+                print(f"Warning: Invalid regex for CWE-{cwe_id}: {exc}", file=sys.stderr)
                 continue
 
     return matches
 
 def main():
     """Main entry point."""
-    code = sys.stdin.read()
+    MAX_INPUT_BYTES = 10 * 1024 * 1024  # 10 MB
+    code = sys.stdin.read(MAX_INPUT_BYTES)
+    if len(code) == MAX_INPUT_BYTES:
+        print("Error: Input exceeds 10 MB maximum", file=sys.stderr)
+        sys.exit(1)
 
     if not code.strip():
         print(json.dumps([], indent=2))
