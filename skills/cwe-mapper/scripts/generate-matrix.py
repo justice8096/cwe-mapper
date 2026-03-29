@@ -151,6 +151,7 @@ CWE_MAPPINGS = {
     },
 }
 
+
 def generate_matrix(findings: list) -> str:
     """Generate compliance matrix markdown."""
     output = []
@@ -283,6 +284,7 @@ def generate_matrix(findings: list) -> str:
 
     return ''.join(output)
 
+
 def main():
     """Main entry point."""
     # CWE-755: Proper error handling — errors to stderr with exit codes
@@ -319,6 +321,7 @@ def main():
 
     matrix = generate_matrix(findings)
     print(matrix)
+
 
 if __name__ == '__main__':
     main()

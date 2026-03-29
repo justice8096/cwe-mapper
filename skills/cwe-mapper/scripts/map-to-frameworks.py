@@ -341,6 +341,7 @@ CWE_MAPPINGS = {
     },
 }
 
+
 def map_cwe(cwe_id: int) -> dict:
     """Get framework mappings for a CWE ID."""
     if cwe_id not in CWE_MAPPINGS:
@@ -360,6 +361,7 @@ def map_cwe(cwe_id: int) -> dict:
 
     return CWE_MAPPINGS[cwe_id]
 
+
 def main():
     """Main entry point."""
     MAX_INPUT_BYTES = 10 * 1024 * 1024  # 10 MB
@@ -369,7 +371,7 @@ def main():
             print("Error: Input exceeds 10 MB maximum", file=sys.stderr)
             sys.exit(1)
         cwe_list = json.loads(raw_input)
-    except json.JSONDecodeError as e:
+    except json.JSONDecodeError:
         # CWE-209: Generic error message without exposing internal structure
         print(json.dumps({'error': 'Invalid JSON input'}, indent=2), file=sys.stderr)
         sys.exit(1)
@@ -385,10 +387,10 @@ def main():
         try:
             cwe_id = int(cwe)
         except (TypeError, ValueError):
-            print(json.dumps({'error': f'Invalid CWE ID type: expected integer'}, indent=2), file=sys.stderr)
+            print(json.dumps({'error': 'Invalid CWE ID type: expected integer'}, indent=2), file=sys.stderr)
             sys.exit(1)
         if cwe_id < 1 or cwe_id > 99999:
-            print(json.dumps({'error': f'CWE ID out of valid range (1-99999)'}, indent=2), file=sys.stderr)
+            print(json.dumps({'error': 'CWE ID out of valid range (1-99999)'}, indent=2), file=sys.stderr)
             sys.exit(1)
         validated_cwes.append(cwe_id)
 
@@ -402,11 +404,15 @@ def main():
                 for mapping in mappings
                 for item in mapping.get(framework, [])
             ))
-            for framework in ['owasp_2021', 'owasp_llm', 'nist', 'eu_ai_act', 'iso_27001', 'soc2', 'mitre_attack', 'mitre_atlas']
+            for framework in [
+                'owasp_2021', 'owasp_llm', 'nist', 'eu_ai_act',
+                'iso_27001', 'soc2', 'mitre_attack', 'mitre_atlas',
+            ]
         },
     }
 
     print(json.dumps(results, indent=2))
+
 
 if __name__ == '__main__':
     main()

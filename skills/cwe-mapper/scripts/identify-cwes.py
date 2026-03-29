@@ -13,7 +13,6 @@ Output: JSON array of {cwe_id, name, severity, line, evidence, confidence}
 import sys
 import re
 import json
-from collections import defaultdict
 
 # CWE Detection Patterns
 CWE_PATTERNS = {
@@ -219,6 +218,7 @@ CWE_PATTERNS = {
     },
 }
 
+
 def detect_language(code: str) -> str:
     """Detect programming language from code patterns."""
     if 'import java' in code or 'public class' in code:
@@ -233,6 +233,7 @@ def detect_language(code: str) -> str:
         return 'html'
     else:
         return 'unknown'
+
 
 def find_cwe_matches(code: str, language: str) -> list:
     """Find CWE matches in code."""
@@ -264,6 +265,7 @@ def find_cwe_matches(code: str, language: str) -> list:
 
     return matches
 
+
 def main():
     """Main entry point."""
     MAX_INPUT_BYTES = 10 * 1024 * 1024  # 10 MB
@@ -289,6 +291,7 @@ def main():
             unique_matches.append(match)
 
     print(json.dumps(unique_matches, indent=2))
+
 
 if __name__ == '__main__':
     main()
