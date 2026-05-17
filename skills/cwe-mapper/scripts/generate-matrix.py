@@ -117,6 +117,7 @@ def _provenance_block(
     lines.append(f"- **Skill changelog**: {CHANGELOG_URL}")
     return "\n".join(lines)
 
+
 CWE_MAPPINGS = {
     20: {
         'name': 'Improper Input Validation',
