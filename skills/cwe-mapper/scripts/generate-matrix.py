@@ -34,7 +34,7 @@ from typing import Optional
 FRAMEWORK_VERSIONS = (
     "CWE List 4.16 (2024-11), "
     "OWASP Top 10:2021, "
-    "OWASP LLM Top 10 v1.1 (2024-10), "
+    "OWASP Top 10 for LLM Applications 2025 (2024-11), "
     "NIST SP 800-53 Rev. 5 (2020-09 + 5.1.1 2023-12), "
     "EU AI Act Arts. 15/35/37 (Reg. (EU) 2024/1689), "
     "ISO/IEC 27001:2022, "

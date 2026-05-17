@@ -63,7 +63,7 @@ detection patterns and remediation notes.
 
 ### 2. Framework Mapping
 
-> *Sources current as of 2026-05. Authority-version pins (record these in every generated `cwe-mapping.md` Provenance Block):* CWE List 4.16 (2024-11, official at cwe.mitre.org); OWASP Top 10:2021; OWASP Top 10 for LLM Applications v1.1 (2024-10); NIST SP 800-53 Rev. 5 (2020-09) + 5.1.1 update (2023-12); EU AI Act (Regulation (EU) 2024/1689) Articles 15 / 35 / 37 (full applicability 2026-08-02); ISO/IEC 27001:2022 Annex A; SOC 2 (AICPA Trust Services Criteria 2017 + 2022 updates); MITRE ATT&CK v17.1 (2025-04); MITRE ATLAS v4.7.0 (2025-01). Verify each cited CWE entry is still current before signing legal-grade audits — CWE entries occasionally get deprecated or renumbered.
+> *Sources current as of 2026-05. Authority-version pins (record these in every generated `cwe-mapping.md` Provenance Block):* CWE List 4.16 (2024-11, official at cwe.mitre.org); OWASP Top 10:2021; OWASP Top 10 for LLM Applications 2025 (published 2024-11); NIST SP 800-53 Rev. 5 (2020-09) + 5.1.1 update (2023-12); EU AI Act (Regulation (EU) 2024/1689) Articles 15 / 35 / 37 (full applicability 2026-08-02); ISO/IEC 27001:2022 Annex A; SOC 2 (AICPA Trust Services Criteria 2017 + 2022 updates); MITRE ATT&CK v17.1 (2025-04); MITRE ATLAS v4.7.0 (2025-01). Verify each cited CWE entry is still current before signing legal-grade audits — CWE entries occasionally get deprecated or renumbered.
 
 Map each identified CWE to all applicable entries across eight frameworks.
 See `references/cwe-owasp-mapping.md`, `references/cwe-mitre-mapping.md`, and

@@ -29,7 +29,7 @@ Documentation/governance release — no behavior changes to CWE identification, 
 - Inline "*Sources current as of 2026-05*" markers + authority-version pin block in `skills/cwe-mapper/SKILL.md`. Pins all 8 frameworks plus the upstream CWE list:
   - CWE List 4.16 (2024-11) — official list at cwe.mitre.org; verify each CWE entry is current before signing audit
   - OWASP Top 10:2021 (web application risks)
-  - OWASP Top 10 for LLM Applications v1.1 (2024-10)
+  - OWASP Top 10 for LLM Applications 2025 (published 2024-11)
   - NIST SP 800-53 Rev. 5 (2020-09) + 5.1.1 update (2023-12)
   - EU AI Act (Regulation (EU) 2024/1689) Articles 15 / 35 / 37 (in force 2024-08-01, full applicability 2026-08-02)
   - ISO/IEC 27001:2022 Annex A controls
@@ -72,7 +72,7 @@ Generated YYYY-MM-DD by cwe-mapper vX.Y.Z (<skill-git-short-hash>)
 Target project: <repo-name> @ <commit-short-hash> on branch <branch-name>
 Sources current as of YYYY-MM except where individual sections note otherwise.
 CWE List version: 4.16 (2024-11)
-Framework versions: OWASP Top 10:2021, OWASP LLM Top 10 v1.1 (2024-10),
+Framework versions: OWASP Top 10:2021, OWASP Top 10 for LLM Applications 2025 (2024-11),
                     NIST SP 800-53 Rev. 5 (2020-09 + 5.1.1 2023-12),
                     EU AI Act Arts. 15/35/37 (Reg. (EU) 2024/1689),
                     ISO/IEC 27001:2022, SOC 2 (AICPA TSC 2017+2022),
